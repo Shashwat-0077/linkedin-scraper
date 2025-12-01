@@ -1,174 +1,406 @@
 import { chromium, Browser, Page } from 'playwright';
 import { config } from './config.js';
-import { Job, SearchFilters } from './types.js';
+import { Job, SearchFilters, LinkedInFilters } from './types.js';
 
 export class LinkedInScraper {
-  private email: string;
-  private password: string;
-  private headless: boolean;
-  private browser: Browser | null = null;
-  private page: Page | null = null;
-  private loggedIn: boolean = false;
+    private email: string;
+    private password: string;
+    private headless: boolean;
+    private browser: Browser | null = null;
+    private page: Page | null = null;
+    private loggedIn: boolean = false;
 
-  constructor(email?: string, password?: string, headless?: boolean) {
-    this.email = email || config.EMAIL;
-    this.password = password || config.PASSWORD;
-    this.headless = headless !== undefined ? headless : config.HEADLESS;
-  }
-
-  private async initBrowser(): Promise<void> {
-    if (this.browser) return; // Already initialized
-
-    console.log('Initializing browser...');
-    this.browser = await chromium.launch({
-      headless: this.headless,
-      args: ['--no-sandbox', '--disable-dev-shm-usage'],
-    });
-
-    this.page = await this.browser.newPage();
-
-    // Set user agent
-    await this.page.setExtraHTTPHeaders({
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    });
-
-    console.log('✓ Browser initialized');
-  }
-
-  private async login(): Promise<boolean> {
-    if (this.loggedIn) return true; // Already logged in
-
-    if (!this.email || !this.password) {
-      throw new Error(
-        'Email and password are required. Set them in .env file or pass to constructor.'
-      );
+    constructor(email?: string, password?: string, headless?: boolean) {
+        this.email = email || config.EMAIL;
+        this.password = password || config.PASSWORD;
+        this.headless = headless !== undefined ? headless : config.HEADLESS;
     }
 
-    // Initialize browser if not already done
-    if (!this.browser || !this.page) {
-      await this.initBrowser();
+    private async initBrowser(): Promise<void> {
+        if (this.browser) return;
+
+        console.log('Initializing browser...');
+        this.browser = await chromium.launch({
+            headless: this.headless,
+            args: ['--no-sandbox', '--disable-dev-shm-usage'],
+        });
+
+        this.page = await this.browser.newPage();
+
+        await this.page.setExtraHTTPHeaders({
+            'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        });
+
+        console.log('✓ Browser initialized');
     }
 
-    if (!this.page) {
-      throw new Error('Page not initialized');
-    }
+    private async login(): Promise<boolean> {
+        if (this.loggedIn) return true;
 
-    try {
-      console.log('Logging into LinkedIn...');
-      await this.page.goto(config.LOGIN_URL, { waitUntil: 'domcontentloaded' });
-
-      // Fill email
-      await this.page.fill('#username', this.email);
-
-      // Fill password
-      await this.page.fill('#password', this.password);
-
-      // Click login button
-      await this.page.click('button[type="submit"]');
-
-      // Wait for navigation
-      await this.page.waitForTimeout(3000);
-
-      // Check if login was successful
-      const currentUrl = this.page.url();
-
-      if (
-        currentUrl.includes('feed') ||
-        currentUrl.includes('mynetwork') ||
-        currentUrl.includes('jobs')
-      ) {
-        console.log('✓ Login successful!');
-        this.loggedIn = true;
-        return true;
-      } else if (currentUrl.includes('challenge') || currentUrl.includes('checkpoint')) {
-        console.log(
-          '⚠ LinkedIn security challenge detected. Please complete it manually in the browser.'
-        );
-        // Wait for user to complete challenge
-        await this.page.waitForURL(
-          (url) => url.href.includes('feed') || url.href.includes('jobs'),
-          { timeout: 120000 }
-        );
-        console.log('✓ Challenge completed!');
-        this.loggedIn = true;
-        return true;
-      } else {
-        console.log('⚠ Login status unclear. Current URL:', currentUrl);
-        return false;
-      }
-    } catch (error) {
-      console.error('✗ Login failed:', (error as Error).message);
-      return false;
-    }
-  }
-
-  private async navigateToJobs(): Promise<boolean> {
-    if (!this.page) {
-      throw new Error('Browser not initialized.');
-    }
-
-    try {
-      console.log('Navigating to jobs page...');
-      await this.page.goto(config.JOBS_SEARCH_URL, { waitUntil: 'domcontentloaded' });
-
-      // Wait a bit for page to stabilize
-      await this.page.waitForTimeout(2000);
-
-      const currentUrl = this.page.url();
-      if (currentUrl.includes('jobs/search') || currentUrl.includes('jobs')) {
-        console.log('✓ Successfully navigated to jobs page');
-        return true;
-      } else {
-        console.log('⚠ Unexpected URL:', currentUrl);
-        return false;
-      }
-    } catch (error) {
-      console.error('✗ Failed to navigate to jobs page:', (error as Error).message);
-      return false;
-    }
-  }
-
-  async searchJobs(filters?: SearchFilters): Promise<Job[]> {
-    console.log('\n=== Starting LinkedIn Job Search ===\n');
-
-    try {
-      // Step 1: Login (if not already logged in)
-      if (!this.loggedIn) {
-        const loginSuccess = await this.login();
-        if (!loginSuccess) {
-          throw new Error('Login failed');
+        if (!this.email || !this.password) {
+            throw new Error('Email and password are required. Set them in .env file or pass to constructor.');
         }
-      }
 
-      // Step 2: Navigate to jobs page
-      const navSuccess = await this.navigateToJobs();
-      if (!navSuccess) {
-        throw new Error('Failed to navigate to jobs page');
-      }
+        if (!this.browser || !this.page) {
+            await this.initBrowser();
+        }
 
-      // Step 3: Perform search
-      console.log('\n🔍 Searching for jobs...');
-      if (filters?.keywords) console.log(`   Keywords: ${filters.keywords}`);
-      if (filters?.location) console.log(`   Location: ${filters.location}`);
+        if (!this.page) {
+            throw new Error('Page not initialized');
+        }
 
-      // TODO: Implement actual job scraping logic here
-      console.log('\n⚠ Job scraping logic - to be implemented in next step');
+        try {
+            console.log('Logging into LinkedIn...');
+            await this.page.goto(config.LOGIN_URL, { waitUntil: 'domcontentloaded' });
 
-      return [];
-    } catch (error) {
-      console.error('Error during job search:', (error as Error).message);
-      throw error;
+            await this.page.fill('#username', this.email);
+            await this.page.fill('#password', this.password);
+            await this.page.click('button[type="submit"]');
+            await this.page.waitForTimeout(3000);
+
+            const currentUrl = this.page.url();
+
+            if (currentUrl.includes('feed') || currentUrl.includes('mynetwork') || currentUrl.includes('jobs')) {
+                console.log('✓ Login successful!');
+                this.loggedIn = true;
+                return true;
+            } else if (currentUrl.includes('challenge') || currentUrl.includes('checkpoint')) {
+                console.log('⚠ LinkedIn security challenge detected. Please complete it manually in the browser.');
+                await this.page.waitForURL((url) => url.href.includes('feed') || url.href.includes('jobs'), {
+                    timeout: 120000,
+                });
+                console.log('✓ Challenge completed!');
+                this.loggedIn = true;
+                return true;
+            } else {
+                console.log('⚠ Login status unclear. Current URL:', currentUrl);
+                return false;
+            }
+        } catch (error) {
+            console.error('✗ Login failed:', (error as Error).message);
+            return false;
+        }
     }
-  }
 
-  async close(): Promise<void> {
-    if (this.browser) {
-      console.log('\nClosing browser...');
-      await this.browser.close();
-      this.browser = null;
-      this.page = null;
-      this.loggedIn = false;
+    private buildSearchUrl(filters?: SearchFilters): string {
+        const params = new URLSearchParams();
+
+        if (filters?.keywords) {
+            params.append('keywords', filters.keywords);
+        }
+
+        if (filters?.location) {
+            params.append('location', filters.location);
+        }
+
+        if (filters?.datePosted && filters.datePosted !== 'any-time') {
+            const dateValue = LinkedInFilters.datePosted[filters.datePosted];
+            if (dateValue) {
+                params.append('f_TPR', dateValue);
+            }
+        }
+
+        if (filters?.experienceLevel && filters.experienceLevel.length > 0) {
+            const experienceLevels = filters.experienceLevel
+                .map((level) => LinkedInFilters.experienceLevel[level])
+                .filter(Boolean)
+                .join(',');
+            if (experienceLevels) {
+                params.append('f_E', experienceLevels);
+            }
+        }
+
+        if (filters?.jobType && filters.jobType.length > 0) {
+            const jobTypes = filters.jobType
+                .map((type) => LinkedInFilters.jobType[type])
+                .filter(Boolean)
+                .join(',');
+            if (jobTypes) {
+                params.append('f_JT', jobTypes);
+            }
+        }
+
+        if (filters?.remote && filters.remote.length > 0) {
+            const remoteOptions = filters.remote
+                .map((option) => LinkedInFilters.remote[option])
+                .filter(Boolean)
+                .join(',');
+            if (remoteOptions) {
+                params.append('f_WT', remoteOptions);
+            }
+        }
+
+        const queryString = params.toString();
+        return queryString ? `${config.JOBS_SEARCH_URL}?${queryString}` : config.JOBS_SEARCH_URL;
     }
-  }
+
+    private async scrapeJobListings(maxJobs: number = 10): Promise<Job[]> {
+        if (!this.page) {
+            throw new Error('Page not initialized');
+        }
+
+        const jobs: Job[] = [];
+
+        try {
+            console.log(`\n📋 Scraping up to ${maxJobs} job listings...`);
+            console.log('   Waiting for job listings to load...');
+
+            await this.page.waitForTimeout(5000);
+
+            // Save debug info
+            await this.page.screenshot({ path: 'debug-screenshot.png', fullPage: true });
+            console.log('   📸 Saved debug-screenshot.png');
+
+            // Scroll to load jobs
+            console.log('   Scrolling to load more jobs...');
+            for (let i = 0; i < 3; i++) {
+                await this.page.evaluate(() => (window as any).scrollBy(0, 1000));
+                await this.page.waitForTimeout(1500);
+            }
+
+            // Try many selectors
+            const selectors = [
+                'ul.scaffold-layout__list-container > li',
+                '.jobs-search-results__list-item',
+                'li.jobs-search-results__list-item',
+                'ul.jobs-search__results-list > li',
+                'li[data-occludable-job-id]',
+                '.scaffold-layout__list li',
+            ];
+
+            let jobCards: any[] = [];
+            for (const selector of selectors) {
+                jobCards = await this.page.$$(selector);
+                if (jobCards.length > 0) {
+                    console.log(`   ✓ Found ${jobCards.length} job cards using: ${selector}`);
+                    break;
+                }
+            }
+
+            if (jobCards.length === 0) {
+                console.log('   ⚠ No job cards found. Check debug-screenshot.png');
+                return jobs;
+            }
+
+            const jobsToScrape = Math.min(jobCards.length, maxJobs);
+
+            for (let i = 0; i < jobsToScrape; i++) {
+                try {
+                    const jobCard = jobCards[i];
+                    await jobCard.scrollIntoViewIfNeeded();
+                    await jobCard.click();
+                    await this.page.waitForTimeout(3000);
+
+                    // Extract job ID
+                    const jobId = await jobCard.evaluate((el: any) => {
+                        return el.getAttribute('data-occludable-job-id') || '';
+                    });
+
+                    // Extract basic info from card
+                    const title = await jobCard.evaluate((el: any) => {
+                        const titleEl = el.querySelector(
+                            '.job-card-list__title, .artdeco-entity-lockup__title, a.job-card-container__link',
+                        );
+                        return titleEl?.textContent?.trim() || '';
+                    });
+
+                    const companyName = await jobCard.evaluate((el: any) => {
+                        const companyEl = el.querySelector(
+                            '.job-card-container__primary-description, .artdeco-entity-lockup__subtitle',
+                        );
+                        return companyEl?.textContent?.trim() || '';
+                    });
+
+                    const location = await jobCard.evaluate((el: any) => {
+                        const locationEl = el.querySelector(
+                            '.job-card-container__metadata-item, .artdeco-entity-lockup__caption',
+                        );
+                        return locationEl?.textContent?.trim() || '';
+                    });
+
+                    const jobUrl = await jobCard.evaluate((el: any) => {
+                        const linkEl = el.querySelector('a[href*="/jobs/view/"]');
+                        return linkEl?.getAttribute('href')?.split('?')[0] || '';
+                    });
+
+                    const link = jobUrl ? `https://www.linkedin.com${jobUrl}` : '';
+
+                    // Extract detailed info from job details panel
+                    let description = '';
+                    let employmentType = '';
+                    let seniorityLevel = '';
+                    let postedAt = '';
+                    let companyLogo = '';
+                    let companyLinkedinUrl = '';
+                    let salary = '';
+                    let applyUrl = link;
+
+                    try {
+                        // Wait for details panel
+                        await this.page.waitForSelector(
+                            '.jobs-search__job-details--container, .job-details-jobs-unified-top-card',
+                            { timeout: 3000 },
+                        );
+
+                        // Get description
+                        const descElement = await this.page.$(
+                            '.jobs-description__content, .jobs-description-content__text, .jobs-box__html-content',
+                        );
+                        if (descElement) {
+                            description = ((await descElement.textContent()) || '').trim();
+                        }
+
+                        // Get company logo
+                        const logoElement = await this.page.$(
+                            '.jobs-company__logo img, .job-details-jobs-unified-top-card__company-logo img',
+                        );
+                        if (logoElement) {
+                            companyLogo = (await logoElement.getAttribute('src')) || '';
+                        }
+
+                        // Get company LinkedIn URL
+                        const companyLinkElement = await this.page.$('a[href*="/company/"]');
+                        if (companyLinkElement) {
+                            const href = await companyLinkElement.getAttribute('href');
+                            companyLinkedinUrl = href ? `https://www.linkedin.com${href.split('?')[0]}` : '';
+                        }
+
+                        // Get job criteria
+                        const criteriaItems = await this.page.$$(
+                            '.job-details-jobs-unified-top-card__job-insight, .jobs-unified-top-card__job-insight',
+                        );
+
+                        for (const item of criteriaItems) {
+                            const text = (await item.textContent()) || '';
+                            const trimmedText = text.trim();
+
+                            if (
+                                trimmedText.includes('Full-time') ||
+                                trimmedText.includes('Part-time') ||
+                                trimmedText.includes('Contract') ||
+                                trimmedText.includes('Temporary')
+                            ) {
+                                employmentType = trimmedText;
+                            } else if (
+                                trimmedText.includes('Entry level') ||
+                                trimmedText.includes('Mid-Senior') ||
+                                trimmedText.includes('Director') ||
+                                trimmedText.includes('Executive')
+                            ) {
+                                seniorityLevel = trimmedText;
+                            }
+                        }
+
+                        // Get posted date
+                        const postedElement = await this.page.$(
+                            '.job-details-jobs-unified-top-card__posted-date, .jobs-unified-top-card__posted-date, time',
+                        );
+                        if (postedElement) {
+                            postedAt = ((await postedElement.textContent()) || '').trim();
+                        }
+
+                        // Get salary if available
+                        const salaryElement = await this.page.$(
+                            '.job-details-jobs-unified-top-card__job-insight--highlight, .salary',
+                        );
+                        if (salaryElement) {
+                            salary = ((await salaryElement.textContent()) || '').trim();
+                        }
+                    } catch (detailError) {
+                        console.log(`   ⚠ Could not load all details for job ${i + 1}`);
+                    }
+
+                    const job: Job = {
+                        id: jobId,
+                        title,
+                        link,
+                        applyUrl,
+                        location,
+                        postedAt,
+                        companyName,
+                        companyLogo,
+                        companyLinkedinUrl,
+                        companyWebsite: '',
+                        companyDescription: '',
+                        companyAddress: '',
+                        companyEmployeesCount: '',
+                        description,
+                        employmentType,
+                        seniorityLevel,
+                        salary,
+                        salaryInfo: salary,
+                        industries: '',
+                        jobFunction: '',
+                        jobPosterName: '',
+                        jobPosterTitle: '',
+                        jobPosterPhoto: '',
+                        jobPosterProfileUrl: '',
+                    };
+
+                    jobs.push(job);
+                    console.log(`   ✓ Scraped ${i + 1}/${jobsToScrape}: ${job.title} at ${job.companyName}`);
+                } catch (error) {
+                    console.log(`   ✗ Error scraping job ${i + 1}:`, (error as Error).message);
+                    continue;
+                }
+            }
+
+            console.log(`\n✓ Successfully scraped ${jobs.length} jobs!`);
+            return jobs;
+        } catch (error) {
+            console.error('Error scraping job listings:', (error as Error).message);
+            return jobs;
+        }
+    }
+
+    async searchJobs(filters?: SearchFilters, maxJobs: number = 10): Promise<Job[]> {
+        console.log('\n=== Starting LinkedIn Job Search ===\n');
+
+        try {
+            if (!this.loggedIn) {
+                const loginSuccess = await this.login();
+                if (!loginSuccess) {
+                    throw new Error('Login failed');
+                }
+            }
+
+            const searchUrl = this.buildSearchUrl(filters);
+            console.log('🔍 Search URL:', searchUrl);
+
+            if (!this.page) {
+                throw new Error('Browser not initialized.');
+            }
+
+            console.log('\nApplying filters...');
+            if (filters?.keywords) console.log(`   Keywords: ${filters.keywords}`);
+            if (filters?.location) console.log(`   Location: ${filters.location}`);
+            if (filters?.datePosted) console.log(`   Date Posted: ${filters.datePosted}`);
+            if (filters?.experienceLevel) console.log(`   Experience Level: ${filters.experienceLevel.join(', ')}`);
+            if (filters?.jobType) console.log(`   Job Type: ${filters.jobType.join(', ')}`);
+            if (filters?.remote) console.log(`   Remote: ${filters.remote.join(', ')}`);
+
+            await this.page.goto(searchUrl, { waitUntil: 'domcontentloaded' });
+            await this.page.waitForTimeout(3000);
+
+            console.log('\n✓ Filters applied successfully!');
+
+            const jobs = await this.scrapeJobListings(maxJobs);
+
+            return jobs;
+        } catch (error) {
+            console.error('Error during job search:', (error as Error).message);
+            throw error;
+        }
+    }
+
+    async close(): Promise<void> {
+        if (this.browser) {
+            console.log('\nClosing browser...');
+            await this.browser.close();
+            this.browser = null;
+            this.page = null;
+            this.loggedIn = false;
+        }
+    }
 }

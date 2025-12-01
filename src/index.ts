@@ -18,7 +18,7 @@ async function main(): Promise<void> {
                 jobType: ['full-time'],
                 remote: ['remote', 'hybrid', 'on-site'],
             },
-            10,
+            100,
         );
 
         console.log(`\n✅ Found ${jobs.length} jobs\n`);

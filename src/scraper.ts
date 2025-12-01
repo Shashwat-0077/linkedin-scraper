@@ -140,7 +140,7 @@ export class LinkedInScraper {
             throw new Error('Page not initialized');
         }
 
-        const jobs: Job[] = [];
+        const allJobs: Job[] = [];
 
         try {
             console.log(`\n📋 Scraping up to ${maxJobs} job listings...`);
@@ -152,205 +152,262 @@ export class LinkedInScraper {
             await this.page.screenshot({ path: 'debug-screenshot.png', fullPage: true });
             console.log('   📸 Saved debug-screenshot.png');
 
-            // Scroll to load jobs
-            console.log('   Scrolling to load more jobs...');
-            for (let i = 0; i < 3; i++) {
-                await this.page.evaluate(() => (window as any).scrollBy(0, 1000));
-                await this.page.waitForTimeout(1500);
-            }
+            // LinkedIn uses pagination - scrape jobs page by page
+            console.log('   Scraping jobs through pagination...');
 
-            // Try many selectors
-            const selectors = [
-                'ul.scaffold-layout__list-container > li',
-                '.jobs-search-results__list-item',
-                'li.jobs-search-results__list-item',
-                'ul.jobs-search__results-list > li',
-                'li[data-occludable-job-id]',
-                '.scaffold-layout__list li',
-            ];
+            let currentPage = 1;
+            const maxPages = Math.ceil(maxJobs / 25); // LinkedIn shows ~25 jobs per page
 
-            let jobCards: any[] = [];
-            for (const selector of selectors) {
-                jobCards = await this.page.$$(selector);
-                if (jobCards.length > 0) {
-                    console.log(`   ✓ Found ${jobCards.length} job cards using: ${selector}`);
+            while (allJobs.length < maxJobs && currentPage <= maxPages) {
+                console.log(`   📄 Processing page ${currentPage}...`);
+
+                // Wait for jobs to load on current page
+                await this.page.waitForTimeout(2000);
+
+                // Try many selectors to find job cards on this page
+                const selectors = [
+                    'li[data-occludable-job-id]',
+                    'ul.scaffold-layout__list-container > li',
+                    '.jobs-search-results__list-item',
+                    'li.jobs-search-results__list-item',
+                    'ul.jobs-search__results-list > li',
+                    '.scaffold-layout__list li',
+                ];
+
+                let jobCards: any[] = [];
+                for (const selector of selectors) {
+                    jobCards = await this.page.$$(selector);
+                    if (jobCards.length > 0) {
+                        console.log(`   ✓ Found ${jobCards.length} jobs on page ${currentPage}`);
+                        break;
+                    }
+                }
+
+                if (jobCards.length === 0) {
+                    console.log(`   ⚠ No jobs found on page ${currentPage}`);
                     break;
                 }
-            }
 
-            if (jobCards.length === 0) {
-                console.log('   ⚠ No job cards found. Check debug-screenshot.png');
-                return jobs;
-            }
+                // Scrape jobs on THIS page before moving to next page
+                const jobsToScrapeOnPage = Math.min(jobCards.length, maxJobs - allJobs.length);
 
-            const jobsToScrape = Math.min(jobCards.length, maxJobs);
-
-            for (let i = 0; i < jobsToScrape; i++) {
-                try {
-                    const jobCard = jobCards[i];
-                    await jobCard.scrollIntoViewIfNeeded();
-                    await jobCard.click();
-                    await this.page.waitForTimeout(3000);
-
-                    // Extract job ID
-                    const jobId = await jobCard.evaluate((el: any) => {
-                        return el.getAttribute('data-occludable-job-id') || '';
-                    });
-
-                    // Extract basic info from card
-                    const title = await jobCard.evaluate((el: any) => {
-                        const titleEl = el.querySelector(
-                            '.job-card-list__title, .artdeco-entity-lockup__title, a.job-card-container__link',
-                        );
-                        return titleEl?.textContent?.trim() || '';
-                    });
-
-                    const companyName = await jobCard.evaluate((el: any) => {
-                        const companyEl = el.querySelector(
-                            '.job-card-container__primary-description, .artdeco-entity-lockup__subtitle',
-                        );
-                        return companyEl?.textContent?.trim() || '';
-                    });
-
-                    const location = await jobCard.evaluate((el: any) => {
-                        const locationEl = el.querySelector(
-                            '.job-card-container__metadata-item, .artdeco-entity-lockup__caption',
-                        );
-                        return locationEl?.textContent?.trim() || '';
-                    });
-
-                    const jobUrl = await jobCard.evaluate((el: any) => {
-                        const linkEl = el.querySelector('a[href*="/jobs/view/"]');
-                        return linkEl?.getAttribute('href')?.split('?')[0] || '';
-                    });
-
-                    const link = jobUrl ? `https://www.linkedin.com${jobUrl}` : '';
-
-                    // Extract detailed info from job details panel
-                    let description = '';
-                    let employmentType = '';
-                    let seniorityLevel = '';
-                    let postedAt = '';
-                    let companyLogo = '';
-                    let companyLinkedinUrl = '';
-                    let salary = '';
-                    let applyUrl = link;
-
+                for (let i = 0; i < jobsToScrapeOnPage; i++) {
                     try {
-                        // Wait for details panel
-                        await this.page.waitForSelector(
-                            '.jobs-search__job-details--container, .job-details-jobs-unified-top-card',
-                            { timeout: 3000 },
-                        );
+                        const jobCard = jobCards[i];
+                        await jobCard.scrollIntoViewIfNeeded();
+                        await jobCard.click();
+                        await this.page.waitForTimeout(3000);
 
-                        // Get description
-                        const descElement = await this.page.$(
-                            '.jobs-description__content, .jobs-description-content__text, .jobs-box__html-content',
-                        );
-                        if (descElement) {
-                            description = ((await descElement.textContent()) || '').trim();
-                        }
+                        // Extract job ID
+                        const jobId = await jobCard.evaluate((el: any) => {
+                            return el.getAttribute('data-occludable-job-id') || '';
+                        });
 
-                        // Get company logo
-                        const logoElement = await this.page.$(
-                            '.jobs-company__logo img, .job-details-jobs-unified-top-card__company-logo img',
-                        );
-                        if (logoElement) {
-                            companyLogo = (await logoElement.getAttribute('src')) || '';
-                        }
+                        // Extract basic info from card
+                        const title = await jobCard.evaluate((el: any) => {
+                            const titleEl = el.querySelector(
+                                '.job-card-list__title, .artdeco-entity-lockup__title, a.job-card-container__link',
+                            );
+                            return titleEl?.textContent?.trim() || '';
+                        });
 
-                        // Get company LinkedIn URL
-                        const companyLinkElement = await this.page.$('a[href*="/company/"]');
-                        if (companyLinkElement) {
-                            const href = await companyLinkElement.getAttribute('href');
-                            companyLinkedinUrl = href ? `https://www.linkedin.com${href.split('?')[0]}` : '';
-                        }
+                        const companyName = await jobCard.evaluate((el: any) => {
+                            const companyEl = el.querySelector(
+                                '.job-card-container__primary-description, .artdeco-entity-lockup__subtitle',
+                            );
+                            return companyEl?.textContent?.trim() || '';
+                        });
 
-                        // Get job criteria
-                        const criteriaItems = await this.page.$$(
-                            '.job-details-jobs-unified-top-card__job-insight, .jobs-unified-top-card__job-insight',
-                        );
+                        const location = await jobCard.evaluate((el: any) => {
+                            const locationEl = el.querySelector(
+                                '.job-card-container__metadata-item, .artdeco-entity-lockup__caption',
+                            );
+                            return locationEl?.textContent?.trim() || '';
+                        });
 
-                        for (const item of criteriaItems) {
-                            const text = (await item.textContent()) || '';
-                            const trimmedText = text.trim();
+                        const jobUrl = await jobCard.evaluate((el: any) => {
+                            const linkEl = el.querySelector('a[href*="/jobs/view/"]');
+                            return linkEl?.getAttribute('href')?.split('?')[0] || '';
+                        });
 
-                            if (
-                                trimmedText.includes('Full-time') ||
-                                trimmedText.includes('Part-time') ||
-                                trimmedText.includes('Contract') ||
-                                trimmedText.includes('Temporary')
-                            ) {
-                                employmentType = trimmedText;
-                            } else if (
-                                trimmedText.includes('Entry level') ||
-                                trimmedText.includes('Mid-Senior') ||
-                                trimmedText.includes('Director') ||
-                                trimmedText.includes('Executive')
-                            ) {
-                                seniorityLevel = trimmedText;
+                        const link = jobUrl ? `https://www.linkedin.com${jobUrl}` : '';
+
+                        // Extract detailed info from job details panel
+                        let description = '';
+                        let employmentType = '';
+                        let seniorityLevel = '';
+                        let postedAt = '';
+                        let companyLogo = '';
+                        let companyLinkedinUrl = '';
+                        let salary = '';
+                        let applyUrl = link;
+
+                        try {
+                            // Wait for details panel
+                            await this.page.waitForSelector(
+                                '.jobs-search__job-details--container, .job-details-jobs-unified-top-card',
+                                { timeout: 3000 },
+                            );
+
+                            // Get description
+                            const descElement = await this.page.$(
+                                '.jobs-description__content, .jobs-description-content__text, .jobs-box__html-content',
+                            );
+                            if (descElement) {
+                                description = ((await descElement.textContent()) || '').trim();
                             }
+
+                            // Get company logo
+                            const logoElement = await this.page.$(
+                                '.jobs-company__logo img, .job-details-jobs-unified-top-card__company-logo img',
+                            );
+                            if (logoElement) {
+                                companyLogo = (await logoElement.getAttribute('src')) || '';
+                            }
+
+                            // Get company LinkedIn URL
+                            const companyLinkElement = await this.page.$('a[href*="/company/"]');
+                            if (companyLinkElement) {
+                                const href = await companyLinkElement.getAttribute('href');
+                                if (href) {
+                                    // Check if href is already a full URL or just a path
+                                    let cleanUrl = '';
+                                    if (href.startsWith('http')) {
+                                        cleanUrl = href.split('?')[0];
+                                    } else {
+                                        cleanUrl = `https://www.linkedin.com${href.split('?')[0]}`;
+                                    }
+                                    // Remove /life suffix if present
+                                    companyLinkedinUrl = cleanUrl.replace(/\/life$/, '');
+                                }
+                            }
+
+                            // Get job criteria
+                            const criteriaItems = await this.page.$$(
+                                '.job-details-jobs-unified-top-card__job-insight, .jobs-unified-top-card__job-insight',
+                            );
+
+                            for (const item of criteriaItems) {
+                                const text = (await item.textContent()) || '';
+                                const trimmedText = text.trim();
+
+                                if (
+                                    trimmedText.includes('Full-time') ||
+                                    trimmedText.includes('Part-time') ||
+                                    trimmedText.includes('Contract') ||
+                                    trimmedText.includes('Temporary')
+                                ) {
+                                    employmentType = trimmedText;
+                                } else if (
+                                    trimmedText.includes('Entry level') ||
+                                    trimmedText.includes('Mid-Senior') ||
+                                    trimmedText.includes('Director') ||
+                                    trimmedText.includes('Executive')
+                                ) {
+                                    seniorityLevel = trimmedText;
+                                }
+                            }
+
+                            // Get posted date
+                            const postedElement = await this.page.$(
+                                '.job-details-jobs-unified-top-card__posted-date, .jobs-unified-top-card__posted-date, time',
+                            );
+                            if (postedElement) {
+                                postedAt = ((await postedElement.textContent()) || '').trim();
+                            }
+
+                            // Get salary if available
+                            const salaryElement = await this.page.$(
+                                '.job-details-jobs-unified-top-card__job-insight--highlight, .salary',
+                            );
+                            if (salaryElement) {
+                                salary = ((await salaryElement.textContent()) || '').trim();
+                            }
+                        } catch (detailError) {
+                            console.log(`   ⚠ Could not load all details for job ${allJobs.length + 1}`);
                         }
 
-                        // Get posted date
-                        const postedElement = await this.page.$(
-                            '.job-details-jobs-unified-top-card__posted-date, .jobs-unified-top-card__posted-date, time',
-                        );
-                        if (postedElement) {
-                            postedAt = ((await postedElement.textContent()) || '').trim();
-                        }
+                        const job: Job = {
+                            id: jobId,
+                            title,
+                            link,
+                            applyUrl,
+                            location,
+                            postedAt,
+                            companyName,
+                            companyLogo,
+                            companyLinkedinUrl,
+                            companyWebsite: '',
+                            companyDescription: '',
+                            companyAddress: '',
+                            companyEmployeesCount: '',
+                            description,
+                            employmentType,
+                            seniorityLevel,
+                            salary,
+                            salaryInfo: salary,
+                            industries: '',
+                            jobFunction: '',
+                            jobPosterName: '',
+                            jobPosterTitle: '',
+                            jobPosterPhoto: '',
+                            jobPosterProfileUrl: '',
+                        };
 
-                        // Get salary if available
-                        const salaryElement = await this.page.$(
-                            '.job-details-jobs-unified-top-card__job-insight--highlight, .salary',
-                        );
-                        if (salaryElement) {
-                            salary = ((await salaryElement.textContent()) || '').trim();
-                        }
-                    } catch (detailError) {
-                        console.log(`   ⚠ Could not load all details for job ${i + 1}`);
+                        allJobs.push(job);
+                        console.log(`   ✓ Scraped ${allJobs.length}/${maxJobs}: ${job.title} at ${job.companyName}`);
+                    } catch (error) {
+                        console.log(`   ✗ Error scraping job ${allJobs.length + 1}:`, (error as Error).message);
+                        continue;
                     }
-
-                    const job: Job = {
-                        id: jobId,
-                        title,
-                        link,
-                        applyUrl,
-                        location,
-                        postedAt,
-                        companyName,
-                        companyLogo,
-                        companyLinkedinUrl,
-                        companyWebsite: '',
-                        companyDescription: '',
-                        companyAddress: '',
-                        companyEmployeesCount: '',
-                        description,
-                        employmentType,
-                        seniorityLevel,
-                        salary,
-                        salaryInfo: salary,
-                        industries: '',
-                        jobFunction: '',
-                        jobPosterName: '',
-                        jobPosterTitle: '',
-                        jobPosterPhoto: '',
-                        jobPosterProfileUrl: '',
-                    };
-
-                    jobs.push(job);
-                    console.log(`   ✓ Scraped ${i + 1}/${jobsToScrape}: ${job.title} at ${job.companyName}`);
-                } catch (error) {
-                    console.log(`   ✗ Error scraping job ${i + 1}:`, (error as Error).message);
-                    continue;
                 }
+
+                // If we have enough jobs, stop
+                if (allJobs.length >= maxJobs) {
+                    console.log(`   ✓ Reached target of ${maxJobs} jobs!`);
+                    break;
+                }
+
+                // Try to find and click the "Next" button
+                const nextButtonSelectors = [
+                    'button[aria-label="View next page"]',
+                    'button[aria-label="Next"]',
+                    '.artdeco-pagination__button--next',
+                    'button.artdeco-pagination__button--next',
+                ];
+
+                let nextButton: any = null;
+                for (const selector of nextButtonSelectors) {
+                    nextButton = await this.page.$(selector);
+                    if (nextButton) {
+                        const isDisabled = await nextButton.evaluate(
+                            (el: any) => el.disabled || el.getAttribute('aria-disabled') === 'true',
+                        );
+                        if (!isDisabled) {
+                            break;
+                        } else {
+                            nextButton = null;
+                        }
+                    }
+                }
+
+                if (!nextButton) {
+                    console.log(`   ⚠ No more pages available. Total jobs: ${allJobs.length}`);
+                    break;
+                }
+
+                // Click the next button
+                console.log(`   ➡️  Clicking Next to load page ${currentPage + 1}...`);
+                await nextButton.click();
+                await this.page.waitForTimeout(3000); // Wait for next page to load
+                currentPage++;
             }
 
-            console.log(`\n✓ Successfully scraped ${jobs.length} jobs!`);
-            return jobs;
+            console.log(`\n✓ Successfully scraped ${allJobs.length} jobs!`);
+            return allJobs;
         } catch (error) {
             console.error('Error scraping job listings:', (error as Error).message);
-            return jobs;
+            return allJobs;
         }
     }
 

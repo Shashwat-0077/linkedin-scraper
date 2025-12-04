@@ -1,6 +1,14 @@
-import { chromium, Browser, Page } from 'playwright';
+import { chromium, Browser, Page, BrowserContext } from 'playwright';
 import { config } from './config.js';
 import { Job, SearchFilters, LinkedInFilters } from './types.js';
+
+interface CompanyDetails {
+    companyWebsite: string;
+    companyDescription: string;
+    companyAddress: string;
+    companyEmployeesCount: string;
+    industries: string;
+}
 
 export class LinkedInScraper {
     private email: string;
@@ -9,6 +17,13 @@ export class LinkedInScraper {
     private browser: Browser | null = null;
     private page: Page | null = null;
     private loggedIn: boolean = false;
+
+    // Company details extraction system
+    private companyQueue: Set<string> = new Set();
+    private companyDetailsCache: Map<string, CompanyDetails> = new Map();
+    private companyWorkerContext: BrowserContext | null = null;
+    private companyWorkerPage: Page | null = null;
+    private isProcessingQueue: boolean = false;
 
     constructor(email?: string, password?: string, headless?: boolean) {
         this.email = email || config.EMAIL;
@@ -33,6 +48,189 @@ export class LinkedInScraper {
         });
 
         console.log('✓ Browser initialized');
+    }
+
+    private async initCompanyWorker(): Promise<void> {
+        if (!this.browser || this.companyWorkerContext) return;
+
+        console.log('🔧 Initializing company details worker...');
+
+        // Create separate browser context for company scraping
+        this.companyWorkerContext = await this.browser.newContext();
+        this.companyWorkerPage = await this.companyWorkerContext.newPage();
+
+        // Set same headers as main page
+        await this.companyWorkerPage.setExtraHTTPHeaders({
+            'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        });
+
+        // Login to LinkedIn in worker context
+        console.log('🔐 Logging into LinkedIn in worker context...');
+        try {
+            await this.companyWorkerPage.goto(config.LOGIN_URL, { waitUntil: 'domcontentloaded' });
+            await this.companyWorkerPage.fill('#username', this.email);
+            await this.companyWorkerPage.fill('#password', this.password);
+            await this.companyWorkerPage.click('button[type="submit"]');
+            await this.companyWorkerPage.waitForTimeout(3000);
+            console.log('✓ Worker logged in successfully');
+        } catch (error) {
+            console.log('⚠ Worker login failed, continuing anyway...');
+        }
+
+        console.log('✓ Company worker initialized and ready');
+    }
+
+    private async scrapeCompanyDetailsInWorker(companyUrl: string): Promise<CompanyDetails> {
+        const defaultDetails: CompanyDetails = {
+            companyWebsite: '',
+            companyDescription: '',
+            companyAddress: '',
+            companyEmployeesCount: '',
+            industries: '',
+        };
+
+        if (!this.companyWorkerPage) {
+            return defaultDetails;
+        }
+
+        try {
+            console.log(`      🏢 Fetching: ${companyUrl.split('/').pop()}`);
+
+            await this.companyWorkerPage.goto(companyUrl, {
+                waitUntil: 'domcontentloaded',
+                timeout: 15000,
+            });
+            await this.companyWorkerPage.waitForTimeout(2000);
+
+            const details: CompanyDetails = { ...defaultDetails };
+
+            // Extract company website
+            try {
+                const websiteElement = await this.companyWorkerPage.$('a[href*="http"]:not([href*="linkedin.com"])');
+                if (websiteElement) {
+                    const href = await websiteElement.getAttribute('href');
+                    if (href && !href.includes('linkedin.com')) {
+                        details.companyWebsite = href;
+                    }
+                }
+            } catch (e) {
+                // Website not found
+            }
+
+            // Extract company description/tagline
+            try {
+                const descriptionSelectors = [
+                    '.org-top-card-summary__tagline',
+                    '.break-words.white-space-pre-wrap',
+                    'p.break-words',
+                ];
+
+                for (const selector of descriptionSelectors) {
+                    const descElement = await this.companyWorkerPage.$(selector);
+                    if (descElement) {
+                        const text = await descElement.textContent();
+                        if (text && text.trim()) {
+                            details.companyDescription = text.trim();
+                            break;
+                        }
+                    }
+                }
+            } catch (e) {
+                // Description not found
+            }
+
+            // Extract company info (employees, industry)
+            try {
+                const infoItems = await this.companyWorkerPage.$$('.org-top-card-summary-info-list__info-item');
+
+                for (const item of infoItems) {
+                    const text = await item.textContent();
+                    if (!text) continue;
+
+                    const trimmedText = text.trim();
+
+                    // Check for employee count
+                    if (trimmedText.includes('employees') || trimmedText.includes('employee')) {
+                        details.companyEmployeesCount = trimmedText;
+                    }
+
+                    // Check for industry
+                    if (
+                        !trimmedText.includes('employees') &&
+                        !trimmedText.includes('followers') &&
+                        trimmedText.length > 5 &&
+                        trimmedText.length < 100
+                    ) {
+                        if (!details.industries) {
+                            details.industries = trimmedText;
+                        }
+                    }
+                }
+            } catch (e) {
+                // Info items not found
+            }
+
+            // Extract company address/location
+            try {
+                const locationSelectors = [
+                    '.org-top-card-summary-info-list__info-item:has-text("·")',
+                    '.org-page-details__definition-text',
+                ];
+
+                for (const selector of locationSelectors) {
+                    const locElement = await this.companyWorkerPage.$(selector);
+                    if (locElement) {
+                        const text = await locElement.textContent();
+                        if (text && text.trim() && text.includes(',')) {
+                            details.companyAddress = text.trim();
+                            break;
+                        }
+                    }
+                }
+            } catch (e) {
+                // Address not found
+            }
+
+            console.log(`      ✓ Extracted details for ${companyUrl.split('/').pop()}`);
+            return details;
+        } catch (error) {
+            console.log(`      ⚠ Error: ${(error as Error).message}`);
+            return defaultDetails;
+        }
+    }
+
+    private async processCompanyQueue(): Promise<void> {
+        if (this.isProcessingQueue || !this.companyWorkerPage) return;
+
+        this.isProcessingQueue = true;
+        console.log(`\n🔄 Processing ${this.companyQueue.size} companies in parallel...`);
+
+        for (const companyUrl of this.companyQueue) {
+            // Skip if already cached
+            if (this.companyDetailsCache.has(companyUrl)) {
+                console.log(`      ⏭️  Cached: ${companyUrl.split('/').pop()}`);
+                continue;
+            }
+
+            try {
+                const details = await this.scrapeCompanyDetailsInWorker(companyUrl);
+                this.companyDetailsCache.set(companyUrl, details);
+            } catch (error) {
+                console.log(`      ⚠ Failed: ${companyUrl.split('/').pop()}`);
+                // Cache empty details to avoid retrying
+                this.companyDetailsCache.set(companyUrl, {
+                    companyWebsite: '',
+                    companyDescription: '',
+                    companyAddress: '',
+                    companyEmployeesCount: '',
+                    industries: '',
+                });
+            }
+        }
+
+        console.log(`✓ Finished processing company details\n`);
+        this.isProcessingQueue = false;
     }
 
     private async login(): Promise<boolean> {
@@ -279,6 +477,19 @@ export class LinkedInScraper {
                                     }
                                     // Remove /life suffix if present
                                     companyLinkedinUrl = cleanUrl.replace(/\/life$/, '');
+
+                                    // Add to queue and start processing immediately (non-blocking)
+                                    if (companyLinkedinUrl) {
+                                        this.companyQueue.add(companyLinkedinUrl);
+
+                                        // Start processing in background if not already running
+                                        if (!this.isProcessingQueue) {
+                                            // Fire and forget - process in parallel
+                                            this.processCompanyQueue().catch((err) => {
+                                                console.log('⚠ Queue processing error:', err.message);
+                                            });
+                                        }
+                                    }
                                 }
                             }
 
@@ -404,6 +615,31 @@ export class LinkedInScraper {
             }
 
             console.log(`\n✓ Successfully scraped ${allJobs.length} jobs!`);
+
+            // Wait for company details queue to finish processing (if running)
+            if (this.companyQueue.size > 0) {
+                console.log(`\n⏳ Waiting for company details processing to complete...`);
+
+                // Wait for queue processing to finish
+                while (this.isProcessingQueue) {
+                    await this.page.waitForTimeout(500);
+                }
+
+                // Enrich jobs with company details from cache
+                console.log(`\n📝 Enriching jobs with company details...`);
+                for (const job of allJobs) {
+                    if (job.companyLinkedinUrl && this.companyDetailsCache.has(job.companyLinkedinUrl)) {
+                        const details = this.companyDetailsCache.get(job.companyLinkedinUrl)!;
+                        job.companyWebsite = details.companyWebsite;
+                        job.companyDescription = details.companyDescription;
+                        job.companyAddress = details.companyAddress;
+                        job.companyEmployeesCount = details.companyEmployeesCount;
+                        job.industries = details.industries;
+                    }
+                }
+                console.log(`✓ Jobs enriched with company details\n`);
+            }
+
             return allJobs;
         } catch (error) {
             console.error('Error scraping job listings:', (error as Error).message);
@@ -442,6 +678,9 @@ export class LinkedInScraper {
 
             console.log('\n✓ Filters applied successfully!');
 
+            // Initialize company details worker
+            await this.initCompanyWorker();
+
             const jobs = await this.scrapeJobListings(maxJobs);
 
             return jobs;
@@ -452,6 +691,13 @@ export class LinkedInScraper {
     }
 
     async close(): Promise<void> {
+        // Close company worker context first
+        if (this.companyWorkerContext) {
+            await this.companyWorkerContext.close();
+            this.companyWorkerContext = null;
+            this.companyWorkerPage = null;
+        }
+
         if (this.browser) {
             console.log('\nClosing browser...');
             await this.browser.close();

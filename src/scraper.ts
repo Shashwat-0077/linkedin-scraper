@@ -264,13 +264,82 @@ export class LinkedInScraper {
                 this.loggedIn = true;
                 return true;
             } else if (currentUrl.includes('challenge') || currentUrl.includes('checkpoint')) {
-                console.log('⚠ LinkedIn security challenge detected. Please complete it manually in the browser.');
-                await this.page.waitForURL((url) => url.href.includes('feed') || url.href.includes('jobs'), {
-                    timeout: 120000,
-                });
-                console.log('✓ Challenge completed!');
-                this.loggedIn = true;
-                return true;
+                console.log('🔐 LinkedIn security challenge detected!');
+
+                // Check if it's a verification code challenge
+                const codeInput = await this.page.$('input[name="pin"], input[id*="verification"], input[id*="pin"]');
+
+                if (codeInput) {
+                    console.log('📧 Attempting to fetch verification code from Gmail...');
+
+                    try {
+                        // Import Gmail service
+                        const { GmailService } = await import('./gmailService.js');
+                        const gmailService = new GmailService();
+
+                        // Create new browser context for Gmail
+                        const gmailContext = await this.browser!.newContext();
+
+                        // Fetch code from Gmail using new context
+                        const verificationCode = await gmailService.loginAndFetchCode(
+                            gmailContext,
+                            config.GMAIL_EMAIL,
+                            config.GMAIL_PASSWORD,
+                        );
+
+                        if (verificationCode) {
+                            console.log(`✓ Verification code received: ${verificationCode}`);
+
+                            // Close Gmail context
+                            await gmailContext.close();
+
+                            // Enter the code
+                            await codeInput.fill(verificationCode);
+                            await this.page.waitForTimeout(1000);
+
+                            // Submit the form
+                            const submitButton = await this.page.$('button[type="submit"], button[id*="submit"]');
+                            if (submitButton) {
+                                await submitButton.click();
+                                await this.page.waitForTimeout(3000);
+
+                                // Check if verification succeeded
+                                const newUrl = this.page.url();
+                                if (
+                                    newUrl.includes('feed') ||
+                                    newUrl.includes('jobs') ||
+                                    newUrl.includes('mynetwork')
+                                ) {
+                                    console.log('✓ Verification successful!');
+                                    this.loggedIn = true;
+                                    return true;
+                                }
+                            }
+                        } else {
+                            console.log('⚠ Could not fetch verification code from Gmail');
+                            // Close Gmail context
+                            await gmailContext.close();
+                        }
+                    } catch (gmailError) {
+                        console.log('⚠ Gmail fetch failed:', (gmailError as Error).message);
+                    }
+                }
+
+                // Fallback to manual entry
+                console.log('⚠ Please complete the security challenge manually in the browser.');
+                console.log('   Waiting up to 2 minutes...');
+
+                try {
+                    await this.page.waitForURL((url) => url.href.includes('feed') || url.href.includes('jobs'), {
+                        timeout: 120000,
+                    });
+                    console.log('✓ Challenge completed!');
+                    this.loggedIn = true;
+                    return true;
+                } catch (timeoutError) {
+                    console.log('✗ Challenge completion timeout');
+                    return false;
+                }
             } else {
                 console.log('⚠ Login status unclear. Current URL:', currentUrl);
                 return false;
@@ -345,10 +414,6 @@ export class LinkedInScraper {
             console.log('   Waiting for job listings to load...');
 
             await this.page.waitForTimeout(5000);
-
-            // Save debug info
-            await this.page.screenshot({ path: 'debug-screenshot.png', fullPage: true });
-            console.log('   📸 Saved debug-screenshot.png');
 
             // LinkedIn uses pagination - scrape jobs page by page
             console.log('   Scraping jobs through pagination...');
@@ -432,12 +497,8 @@ export class LinkedInScraper {
 
                         // Extract detailed info from job details panel
                         let description = '';
-                        let employmentType = '';
-                        let seniorityLevel = '';
                         let postedAt = '';
-                        let companyLogo = '';
                         let companyLinkedinUrl = '';
-                        let salary = '';
                         let applyUrl = link;
 
                         try {
@@ -453,14 +514,6 @@ export class LinkedInScraper {
                             );
                             if (descElement) {
                                 description = ((await descElement.textContent()) || '').trim();
-                            }
-
-                            // Get company logo
-                            const logoElement = await this.page.$(
-                                '.jobs-company__logo img, .job-details-jobs-unified-top-card__company-logo img',
-                            );
-                            if (logoElement) {
-                                companyLogo = (await logoElement.getAttribute('src')) || '';
                             }
 
                             // Get company LinkedIn URL
@@ -493,46 +546,97 @@ export class LinkedInScraper {
                                 }
                             }
 
-                            // Get job criteria
-                            const criteriaItems = await this.page.$$(
-                                '.job-details-jobs-unified-top-card__job-insight, .jobs-unified-top-card__job-insight',
-                            );
-
-                            for (const item of criteriaItems) {
-                                const text = (await item.textContent()) || '';
-                                const trimmedText = text.trim();
-
+                            // Get posted date
+                            // Posted date is in a tvm__text element containing text like "5 days ago"
+                            const postedElements = await this.page.$$('span.tvm__text.tvm__text--low-emphasis');
+                            for (const element of postedElements) {
+                                const text = ((await element.textContent()) || '').trim();
                                 if (
-                                    trimmedText.includes('Full-time') ||
-                                    trimmedText.includes('Part-time') ||
-                                    trimmedText.includes('Contract') ||
-                                    trimmedText.includes('Temporary')
+                                    text.includes('ago') ||
+                                    text.includes('hour') ||
+                                    text.includes('day') ||
+                                    text.includes('week') ||
+                                    text.includes('month')
                                 ) {
-                                    employmentType = trimmedText;
-                                } else if (
-                                    trimmedText.includes('Entry level') ||
-                                    trimmedText.includes('Mid-Senior') ||
-                                    trimmedText.includes('Director') ||
-                                    trimmedText.includes('Executive')
-                                ) {
-                                    seniorityLevel = trimmedText;
+                                    postedAt = text;
+                                    break;
                                 }
                             }
 
-                            // Get posted date
-                            const postedElement = await this.page.$(
-                                '.job-details-jobs-unified-top-card__posted-date, .jobs-unified-top-card__posted-date, time',
-                            );
-                            if (postedElement) {
-                                postedAt = ((await postedElement.textContent()) || '').trim();
-                            }
+                            // Get correct apply URL (Easy Apply vs External Apply)
+                            try {
+                                // Look for apply button with multiple selectors
+                                const applyButtonSelectors = [
+                                    '.jobs-apply-button',
+                                    'button.jobs-apply-button',
+                                    'a.jobs-apply-button',
+                                    '[data-control-name="jobdetails_topcard_inapply"]',
+                                    '.jobs-s-apply button',
+                                    '.jobs-apply-button--top-card',
+                                ];
 
-                            // Get salary if available
-                            const salaryElement = await this.page.$(
-                                '.job-details-jobs-unified-top-card__job-insight--highlight, .salary',
-                            );
-                            if (salaryElement) {
-                                salary = ((await salaryElement.textContent()) || '').trim();
+                                let applyButton = null;
+                                for (const selector of applyButtonSelectors) {
+                                    applyButton = await this.page.$(selector);
+                                    if (applyButton) break;
+                                }
+
+                                if (applyButton) {
+                                    // Check button text to determine type
+                                    const buttonText = await applyButton.textContent();
+                                    const isEasyApply =
+                                        buttonText?.includes('Easy Apply') || buttonText?.includes('Easy apply');
+
+                                    if (isEasyApply) {
+                                        // Easy Apply - use job link
+                                        applyUrl = link;
+                                    } else {
+                                        // External Apply - intercept the redirect URL
+                                        console.log(`      🔗 Detecting external apply URL...`);
+
+                                        try {
+                                            // Listen for popup or new page
+                                            const popupPromise = this.page
+                                                .context()
+                                                .waitForEvent('page', { timeout: 3000 });
+
+                                            // Click the apply button
+                                            await applyButton.click();
+                                            await this.page.waitForTimeout(300);
+
+                                            // Try to catch popup
+                                            try {
+                                                const popup = await popupPromise;
+                                                applyUrl = popup.url();
+                                                console.log(`      ✓ Captured: ${applyUrl.substring(0, 60)}...`);
+
+                                                // Close the popup
+                                                await popup.close();
+                                            } catch {
+                                                // No popup - might have navigated in same page
+                                                const currentUrl = this.page.url();
+                                                if (!currentUrl.includes('/jobs/view/')) {
+                                                    // Page navigated to external site
+                                                    applyUrl = currentUrl;
+                                                    console.log(
+                                                        `      ✓ Captured via navigation: ${applyUrl.substring(
+                                                            0,
+                                                            60,
+                                                        )}...`,
+                                                    );
+                                                    // Navigate back
+                                                    await this.page.goBack();
+                                                    await this.page.waitForTimeout(1000);
+                                                }
+                                            }
+                                        } catch (e) {
+                                            // Failed to intercept - keep default
+                                            console.log(`      ⚠ Could not capture external URL`);
+                                        }
+                                    }
+                                }
+                            } catch (e) {
+                                // Keep default applyUrl as link
                             }
                         } catch (detailError) {
                             console.log(`   ⚠ Could not load all details for job ${allJobs.length + 1}`);
@@ -546,23 +650,13 @@ export class LinkedInScraper {
                             location,
                             postedAt,
                             companyName,
-                            companyLogo,
                             companyLinkedinUrl,
                             companyWebsite: '',
                             companyDescription: '',
                             companyAddress: '',
                             companyEmployeesCount: '',
                             description,
-                            employmentType,
-                            seniorityLevel,
-                            salary,
-                            salaryInfo: salary,
                             industries: '',
-                            jobFunction: '',
-                            jobPosterName: '',
-                            jobPosterTitle: '',
-                            jobPosterPhoto: '',
-                            jobPosterProfileUrl: '',
                         };
 
                         allJobs.push(job);

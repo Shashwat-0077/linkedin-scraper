@@ -8,7 +8,6 @@ export interface Job {
 
     // Company Info
     companyName: string;
-    companyLogo?: string;
     companyWebsite?: string;
     companyLinkedinUrl?: string;
     companyDescription?: string;
@@ -17,18 +16,7 @@ export interface Job {
 
     // Job Details
     description?: string;
-    employmentType?: string;
-    seniorityLevel?: string;
-    salary?: string;
-    salaryInfo?: string;
     industries?: string;
-    jobFunction?: string;
-
-    // Job Poster Info
-    jobPosterName?: string;
-    jobPosterTitle?: string;
-    jobPosterPhoto?: string;
-    jobPosterProfileUrl?: string;
 }
 
 export interface SearchFilters {

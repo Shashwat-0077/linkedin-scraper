@@ -1,5 +1,4 @@
 import { LinkedInScraper } from './scraper.js';
-import readline from 'readline';
 import fs from 'fs';
 import path from 'path';
 
@@ -28,7 +27,6 @@ async function main(): Promise<void> {
             console.log(`${index + 1}. ${job.title}`);
             console.log(`   Company: ${job.companyName}`);
             console.log(`   Location: ${job.location}`);
-            if (job.employmentType) console.log(`   Type: ${job.employmentType}`);
             if (job.postedAt) console.log(`   Posted: ${job.postedAt}`);
             if (job.link) console.log(`   URL: ${job.link}`);
             console.log('');
@@ -44,29 +42,14 @@ async function main(): Promise<void> {
         fs.writeFileSync(outputPath, JSON.stringify(jobs, null, 2), 'utf-8');
         console.log(`\n💾 Saved ${jobs.length} jobs to ${outputPath}\n`);
 
-        // Keep browser open to see results
-        console.log('Press Enter to close the browser...');
-        await waitForEnter();
+        // Auto-close after saving results
     } catch (error) {
         console.error('\n✗ Error:', (error as Error).message);
     } finally {
         // Clean up
+        console.log('Closing browser...');
         await scraper.close();
     }
-}
-
-// Helper function to wait for Enter key
-function waitForEnter(): Promise<void> {
-    return new Promise((resolve) => {
-        const rl = readline.createInterface({
-            input: process.stdin,
-            output: process.stdout,
-        });
-        rl.question('', () => {
-            rl.close();
-            resolve();
-        });
-    });
 }
 
 main();

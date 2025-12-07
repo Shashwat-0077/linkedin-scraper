@@ -4,12 +4,12 @@ Fast LinkedIn job scraper using Playwright and TypeScript for personal automatio
 
 ## Features
 
-- ✅ **TypeScript** - Type-safe code with IntelliSense
-- ✅ Fast scraping with Playwright (3x faster than Selenium)
-- ✅ Simple API - one function does everything
-- ✅ Automatic login and session management
-- ✅ Headless mode support
-- ✅ Easy n8n integration
+-   ✅ **TypeScript** - Type-safe code with IntelliSense
+-   ✅ Fast scraping with Playwright (3x faster than Selenium)
+-   ✅ Simple API - one function does everything
+-   ✅ Automatic login and session management
+-   ✅ Headless mode support
+-   ✅ Easy n8n integration
 
 ## Setup
 
@@ -34,6 +34,7 @@ cp .env.example .env
 ```
 
 Edit `.env`:
+
 ```
 LINKEDIN_EMAIL=your_email@example.com
 LINKEDIN_PASSWORD=your_password
@@ -62,13 +63,13 @@ import { LinkedInScraper } from './scraper.js';
 const scraper = new LinkedInScraper();
 
 try {
-  const jobs = await scraper.searchJobs({
-    keywords: 'Python Developer',
-    location: 'United States'
-  });
-  console.log(jobs);
+    const jobs = await scraper.searchJobs({
+        keywords: 'Python Developer',
+        location: 'United States',
+    });
+    console.log(jobs);
 } finally {
-  await scraper.close();
+    await scraper.close();
 }
 ```
 
@@ -97,17 +98,17 @@ You can integrate this with n8n by:
 
 ## Speed Comparison
 
-- **Playwright**: ~10 seconds (login + search)
-- **Selenium**: ~30 seconds (login + search)
-- **3x faster!** ⚡
+-   **Playwright**: ~10 seconds (login + search)
+-   **Selenium**: ~30 seconds (login + search)
+-   **3x faster!** ⚡
 
 ## Next Steps
 
-- [ ] Implement job scraping logic
-- [ ] Add JSON export
-- [ ] Create Express API wrapper for n8n
-- [ ] Add error handling and retries
-- [ ] Support multiple job platforms
+-   [ ] Implement job scraping logic
+-   [ ] Add JSON export
+-   [ ] Create Express API wrapper for n8n
+-   [ ] Add error handling and retries
+-   [ ] Support multiple job platforms
 
 ## License
 

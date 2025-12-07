@@ -35,21 +35,29 @@ npm run gmail:token
 
 ## Quick Start
 
+1. **Create `linkedin-scraper.config.cjs` in your project root:**
+
+```javascript
+module.exports = {
+    email: 'your-linkedin-email@example.com',
+    password: 'your-linkedin-password',
+    headless: false,
+    gmailClientId: 'your-gmail-client-id.apps.googleusercontent.com',
+    gmailClientSecret: 'your-gmail-client-secret',
+    gmailRedirectUri: 'http://localhost',
+    gmailRefreshToken: 'your-gmail-refresh-token',
+    gmailAccessToken: 'your-gmail-access-token',
+    sessionFile: './sessions/linkedin-session.json',
+    tokenFile: './sessions/gmail-token.json',
+};
+```
+
+2. **Use the scraper:**
+
 ```typescript
 import { LinkedInScraper } from 'linkedin-job-scraper';
 
-const scraper = new LinkedInScraper({
-    email: process.env.LINKEDIN_EMAIL!,
-    password: process.env.LINKEDIN_PASSWORD!,
-    headless: false,
-    gmailClientId: process.env.GMAIL_CLIENT_ID!,
-    gmailClientSecret: process.env.GMAIL_CLIENT_SECRET!,
-    gmailRedirectUri: process.env.GMAIL_REDIRECT_URI || 'http://localhost',
-    gmailRefreshToken: process.env.GMAIL_REFRESH_TOKEN!,
-    gmailAccessToken: process.env.GMAIL_ACCESS_TOKEN!,
-    sessionFile: './sessions/linkedin-session.json',
-    tokenFile: './sessions/gmail-token.json',
-});
+const scraper = new LinkedInScraper();
 
 const jobs = await scraper.searchJobs(
     {
@@ -69,22 +77,40 @@ await scraper.close();
 
 ## Configuration
 
-### Environment Variables
+### Configuration File
 
-Create a `.env` file in your project root:
+Create a `linkedin-scraper.config.cjs` file in your project root:
 
-```bash
-# LinkedIn Credentials
-LINKEDIN_EMAIL=your-email@gmail.com
-LINKEDIN_PASSWORD=your-password
+```javascript
+module.exports = {
+    // LinkedIn Credentials
+    email: 'your-email@gmail.com',
+    password: 'your-password',
 
-# Gmail API OAuth2 Credentials (for automatic verification code fetching)
-GMAIL_CLIENT_ID=your-client-id.apps.googleusercontent.com
-GMAIL_CLIENT_SECRET=your-client-secret
-GMAIL_REDIRECT_URI=http://localhost
-GMAIL_REFRESH_TOKEN=your-refresh-token
-GMAIL_ACCESS_TOKEN=your-access-token
+    // Browser options
+    headless: false, // Set to true to run without visible browser
+    silent: false, // Set to true to suppress console output
+
+    // Gmail API OAuth2 Credentials (for automatic verification code fetching)
+    gmailClientId: 'your-client-id.apps.googleusercontent.com',
+    gmailClientSecret: 'your-client-secret',
+    gmailRedirectUri: 'http://localhost',
+    gmailRefreshToken: 'your-refresh-token',
+    gmailAccessToken: 'your-access-token',
+
+    // Optional: Custom file paths
+    sessionFile: './sessions/linkedin-session.json',
+    tokenFile: './sessions/gmail-token.json',
+};
 ```
+
+> **Note:** For security, you can load values from environment variables in the config file:
+>
+> ```javascript
+> email: process.env.LINKEDIN_EMAIL,
+> ```
+
+> **Important:** Add `linkedin-scraper.config.cjs` to `.gitignore` if it contains sensitive credentials.
 
 ### Gmail API Setup
 
@@ -105,6 +131,8 @@ npm run gmail:token
 ## Usage
 
 ### Basic Search
+
+After creating your `linkedin-scraper.config.cjs` file:
 
 ```typescript
 import { LinkedInScraper } from 'linkedin-job-scraper';
@@ -148,12 +176,15 @@ const jobs = await scraper.searchJobs(
 
 ### Custom Configuration
 
-```typescript
-const scraper = new LinkedInScraper({
+All configuration is done via the `linkedin-scraper.config.cjs` file. Simply edit this file to customize settings:
+
+```javascript
+// linkedin-scraper.config.cjs
+module.exports = {
     email: 'your-email@gmail.com',
     password: 'your-password',
-    headless: true,
-    silent: true,
+    headless: true, // Run in headless mode
+    silent: true, // Suppress console output
     gmailClientId: 'your-client-id',
     gmailClientSecret: 'your-client-secret',
     gmailRedirectUri: 'http://localhost',
@@ -161,7 +192,7 @@ const scraper = new LinkedInScraper({
     gmailAccessToken: 'your-access-token',
     sessionFile: './custom/path/session.json',
     tokenFile: './custom/path/token.json',
-});
+};
 ```
 
 ## API Reference
@@ -171,38 +202,28 @@ const scraper = new LinkedInScraper({
 #### Constructor
 
 ```typescript
-new LinkedInScraper(options: LinkedInScraperOptions)
+new LinkedInScraper();
 ```
 
-**Options:**
+Configuration is loaded automatically from `linkedin-scraper.config.cjs` in your project root.
+
+**Configuration Options:**
 
 ```typescript
-interface LinkedInScraperOptions {
-    email: string;
-    password: string;
-    headless?: boolean;
-    silent?: boolean;
-    gmailClientId: string;
-    gmailClientSecret: string;
-    gmailRedirectUri: string;
-    gmailRefreshToken: string;
-    gmailAccessToken: string;
-    sessionFile?: string;
-    tokenFile?: string;
+interface LinkedInScraperConfig {
+    email: string; // LinkedIn email (required)
+    password: string; // LinkedIn password (required)
+    headless?: boolean; // Run browser in headless mode (default: false)
+    silent?: boolean; // Suppress all console output (default: false)
+    gmailClientId: string; // Gmail API client ID (required)
+    gmailClientSecret: string; // Gmail API client secret (required)
+    gmailRedirectUri: string; // Gmail OAuth redirect URI (required)
+    gmailRefreshToken: string; // Gmail OAuth refresh token (required)
+    gmailAccessToken: string; // Gmail OAuth access token (required)
+    sessionFile?: string; // Path to save LinkedIn session cookies (optional)
+    tokenFile?: string; // Path to save Gmail tokens (optional)
 }
 ```
-
--   `email`: LinkedIn email (required)
--   `password`: LinkedIn password (required)
--   `headless`: Run browser in headless mode (default: false)
--   `silent`: Suppress all console output (default: false)
--   `gmailClientId`: Gmail API client ID (required)
--   `gmailClientSecret`: Gmail API client secret (required)
--   `gmailRedirectUri`: Gmail OAuth redirect URI (required)
--   `gmailRefreshToken`: Gmail OAuth refresh token (required)
--   `gmailAccessToken`: Gmail OAuth access token (required)
--   `sessionFile`: Path to save LinkedIn session cookies (default: ./linkedin-session.json)
--   `tokenFile`: Path to save Gmail tokens (default: ./token.json)
 
 #### Methods
 

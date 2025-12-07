@@ -1,6 +1,7 @@
 import { chromium, Browser, Page, BrowserContext } from 'playwright';
 import { config } from './config.js';
 import { Job, SearchFilters, LinkedInFilters } from './types/index.js';
+import { loadConfigSync, LinkedInScraperConfig } from './utils/configLoader.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -12,16 +13,20 @@ interface CompanyDetails {
     industries: string;
 }
 
+/**
+ * @deprecated LinkedInScraperOptions is deprecated. Configuration is now loaded from linkedin-scraper.config.cjs file.
+ * This interface is kept for backward compatibility but will be removed in a future version.
+ */
 export interface LinkedInScraperOptions {
-    email: string;
-    password: string;
+    email?: string;
+    password?: string;
     headless?: boolean;
     silent?: boolean;
-    gmailClientId: string;
-    gmailClientSecret: string;
-    gmailRedirectUri: string;
-    gmailRefreshToken: string;
-    gmailAccessToken: string;
+    gmailClientId?: string;
+    gmailClientSecret?: string;
+    gmailRedirectUri?: string;
+    gmailRefreshToken?: string;
+    gmailAccessToken?: string;
     sessionFile?: string;
     tokenFile?: string;
 }
@@ -49,42 +54,28 @@ export class LinkedInScraper {
     private companyWorkerPage: Page | null = null;
     private isProcessingQueue: boolean = false;
 
-    constructor(options: LinkedInScraperOptions) {
-        // Validate required credentials
-        if (!options.email || !options.password) {
-            throw new Error('LinkedIn email and password are required');
-        }
-
-        if (
-            !options.gmailClientId ||
-            !options.gmailClientSecret ||
-            !options.gmailRedirectUri ||
-            !options.gmailRefreshToken ||
-            !options.gmailAccessToken
-        ) {
-            throw new Error(
-                'All Gmail API credentials are required (clientId, clientSecret, redirectUri, refreshToken, accessToken)',
-            );
-        }
+    constructor() {
+        // Load configuration from linkedin-scraper.config.cjs in user's project root
+        const loadedConfig = loadConfigSync();
 
         // LinkedIn credentials
-        this.email = options.email;
-        this.password = options.password;
-        this.headless = options.headless ?? false;
+        this.email = loadedConfig.email;
+        this.password = loadedConfig.password;
+        this.headless = loadedConfig.headless ?? false;
 
         // Gmail API credentials
-        this.gmailClientId = options.gmailClientId;
-        this.gmailClientSecret = options.gmailClientSecret;
-        this.gmailRedirectUri = options.gmailRedirectUri;
-        this.gmailRefreshToken = options.gmailRefreshToken;
-        this.gmailAccessToken = options.gmailAccessToken;
+        this.gmailClientId = loadedConfig.gmailClientId;
+        this.gmailClientSecret = loadedConfig.gmailClientSecret;
+        this.gmailRedirectUri = loadedConfig.gmailRedirectUri;
+        this.gmailRefreshToken = loadedConfig.gmailRefreshToken;
+        this.gmailAccessToken = loadedConfig.gmailAccessToken;
 
-        // File paths - use provided or fall back to config
-        this.sessionFile = options.sessionFile || config.SESSION_FILE;
-        this.tokenFile = options.tokenFile || config.TOKEN_FILE;
+        // File paths - use provided or fall back to config defaults
+        this.sessionFile = loadedConfig.sessionFile || config.SESSION_FILE;
+        this.tokenFile = loadedConfig.tokenFile || config.TOKEN_FILE;
 
         // Silent mode - suppress all console output
-        if (options.silent) {
+        if (loadedConfig.silent) {
             console.log = () => {};
         }
     }

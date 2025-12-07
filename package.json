@@ -1,6 +1,6 @@
 {
     "name": "@shashwat-0077/linkedin-job-scraper",
-    "version": "1.0.5",
+    "version": "1.1.0",
     "description": "Automated LinkedIn job scraper with session persistence and Gmail verification code fetching",
     "main": "dist/index.js",
     "module": "dist/index.js",

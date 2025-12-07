@@ -1,34 +1,17 @@
 import { LinkedInScraper } from '../src/LinkedInScraper.js';
 import fs from 'fs';
 import path from 'path';
-import dotenv from 'dotenv';
-
-// Load environment variables
-dotenv.config();
 
 /**
  * Basic usage example for linkedin-job-scraper package
+ *
+ * NOTE: Configuration is loaded from linkedin-scraper.config.cjs file
+ * in your project root directory. See the example config file for details.
  */
 
 async function main(): Promise<void> {
-    // All credentials are required
-    const scraper = new LinkedInScraper({
-        // LinkedIn credentials
-        email: process.env.LINKEDIN_EMAIL!,
-        password: process.env.LINKEDIN_PASSWORD!,
-        headless: false,
-        silent: true, // Set to true to suppress all console output
-
-        // Gmail API credentials
-        gmailClientId: process.env.GMAIL_CLIENT_ID!,
-        gmailClientSecret: process.env.GMAIL_CLIENT_SECRET!,
-        gmailRedirectUri: process.env.GMAIL_REDIRECT_URI || 'http://localhost',
-        gmailRefreshToken: process.env.GMAIL_REFRESH_TOKEN!,
-        gmailAccessToken: process.env.GMAIL_ACCESS_TOKEN!,
-
-        sessionFile: './sessions/linkedin-session.json',
-        tokenFile: './sessions/gmail-token.json',
-    });
+    // All configuration is loaded from linkedin-scraper.config.cjs
+    const scraper = new LinkedInScraper();
 
     try {
         // Search for jobs with filters

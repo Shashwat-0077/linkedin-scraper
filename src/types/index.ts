@@ -21,3 +21,6 @@ export { LinkedInFilters } from './linkedin.js';
 
 // API types
 export type { JobSearchRequest, ApiResponse, JobSearchResponse, PlatformsResponse, HealthResponse } from './api.js';
+
+// Config types
+export type { LinkedInScraperConfig } from '../utils/configLoader.js';

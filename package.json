@@ -35,17 +35,17 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/shashwat-0077/linkedin-job-scraper.git"
+        "url": "https://github.com/Shashwat-0077/linkedin-scraper.git"
     },
     "bugs": {
-        "url": "https://github.com/shashwat-0077/linkedin-job-scraper/issues"
+        "url": "https://github.com/Shashwat-0077/linkedin-scraper/issues"
     },
-    "homepage": "https://github.com/shashwat-0077/linkedin-job-scraper#readme",
+    "homepage": "https://github.com/Shashwat-0077/linkedin-scraper#readme",
     "publishConfig": {
         "access": "public"
     },
     "dependencies": {
-        "dotenv": "^16.6.1",
+        "dotenv": "^17.2.3",
         "google-auth-library": "^10.5.0",
         "googleapis": "^167.0.0",
         "playwright": "^1.40.0"

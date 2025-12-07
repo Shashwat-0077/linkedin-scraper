@@ -16,6 +16,7 @@ export interface LinkedInScraperOptions {
     email: string;
     password: string;
     headless?: boolean;
+    silent?: boolean;
     gmailClientId: string;
     gmailClientSecret: string;
     gmailRedirectUri: string;
@@ -81,6 +82,11 @@ export class LinkedInScraper {
         // File paths - use provided or fall back to config
         this.sessionFile = options.sessionFile || config.SESSION_FILE;
         this.tokenFile = options.tokenFile || config.TOKEN_FILE;
+
+        // Silent mode - suppress all console output
+        if (options.silent) {
+            console.log = () => {};
+        }
     }
 
     /**

@@ -16,7 +16,8 @@ async function main(): Promise<void> {
         // LinkedIn credentials
         email: process.env.LINKEDIN_EMAIL!,
         password: process.env.LINKEDIN_PASSWORD!,
-        headless: true,
+        headless: false,
+        silent: true, // Set to true to suppress all console output
 
         // Gmail API credentials
         gmailClientId: process.env.GMAIL_CLIENT_ID!,

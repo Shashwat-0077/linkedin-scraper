@@ -1,21 +1,5 @@
 [
   {
-    "id": "4326082928",
-    "title": "Reactjs EngineerReactjs Engineer",
-    "link": "https://www.linkedin.com/jobs/view/4326082928/",
-    "applyUrl": "https://careers.shurutech.com/jobs/Careers/156977000001142162/Reactjs-Engineer?source=Linkedin",
-    "location": "India (Remote)",
-    "postedAt": "1 day ago",
-    "companyName": "Shuru",
-    "companyLinkedinUrl": "https://www.linkedin.com/company/shurutech",
-    "companyWebsite": "http://shurutech.com",
-    "companyDescription": "Give wings to your ideas!",
-    "companyAddress": "",
-    "companyEmployeesCount": "51-200 employees",
-    "description": "About the job\n            \n\n            \n                \n                  Category: TechnologyLocation: Bangalore North Karnataka IndiaAs a Frontend Engineer on the Web Platform team, you will collaborate with designers, backend engineers, and fellow frontend developers to build high-quality UI components and product features. You will play a meaningful role in shaping our web experiences by understanding user needs, solving interface challenges, and contributing to smooth, reliable workflows across our products.If building delightful and scalable web interfaces, solving frontend challenges, and working closely with a talented cross-functional team excites you, we'd love for you to join us!      Collaborate with engineers, designers, and product stakeholders to understand problems and contribute to effective solutions.Partner with team members to break down requirements and participate in solution design.Build reusable, accessible, and responsive UI components that work seamlessly across browsers and devices.Explore and prototype different approaches to tackle complex user interface and experience challenges.Implement features using our current technology stack, bringing in modern and reliable frontend practices.Write clean, maintainable, and efficient code that supports long-term scalability.Contribute to documentation, including technical notes, guides, and RFCs.Write automated tests to ensure reliability and robustness of key flows.\nRequirements      1–4 years of experience building interactive desktop and mobile web applications.Solid understanding of HTML5, CSS3, and JavaScript.Familiarity with design tools such as Figma or Sketch to collaborate effectively with product and UX partners.Working experience with React and TypeScript (deeper expertise for mid-level).Ability to analyze and interpret designs and wireframes with a good sense of UX.Awareness of common web security practices and familiarity with OWASP Top 10.Understanding of deployment and delivery workflows for frontend applications.Exposure to Node.js and Express.js for building simple backend-for-frontend layers (a must-have for mid-level and a plus for junior).Strong communication and collaboration skills, with the ability to work effectively in a diverse team.A proactive, iterative mindset with a “make and show” attitude—comfortable learning quickly and improving with feedback.\nBenefits      Competitive salary and hybrid work modelOpportunity to work with a team of experienced product and tech leaders.A flexible work environment with remote working options.Continuous learning and development opportunities. Chance to make a significant impact on diverse and innovative projects.\nDetails",
-    "industries": "IT Services and IT Consulting"
-  },
-  {
     "id": "4325525695",
     "title": "Frontend Engineer - India (YC S23)Frontend Engineer - India (YC S23)",
     "link": "https://www.linkedin.com/jobs/view/4325525695/",
@@ -29,6 +13,22 @@
     "companyAddress": "",
     "companyEmployeesCount": "2-10 employees",
     "description": "About the job\n            \n\n            \n                \n                  Frontend Engineer (India)As a Frontend Engineer, you will have the unique opportunity to shape the DNA of our user experience. Given the no/low-code nature of our platform, we're seeking someone who is not only technically adept but also deeply passionate about creating an engaging, intuitive, and performant user interface.Responsibilities:      Work directly with the founders to conceptualize and implement an exceptional user interface.Lead frontend architecture decisions, ensuring the platform is scalable and maintainable.Drive forward web performance optimization.Advocate for and implement UI/UX best practices, ensuring users are at the heart of every design decision.Incorporate user feedback to continuously iterate and refine the platform.Stay updated with the latest frontend technologies and integrate them where relevant.Establish foundational frontend practices that will guide future team members.\nRequirements:      Degree in a technical discipline, preferably computer science.Experience with React/NextJS or similar frontend frameworks.Experience with the entire web development process (design, development, and deployment).Ability to integrate seamlessly with backend APIs.Familiarity with source control tools, preferably Git.In-depth knowledge of responsive design.A keen eye for user experience and UI design.Strong communication skills and a collaborative mindset.Problem-solving aptitude and enthusiasm for overcoming challenges.\nNice to Have:      Experience in early-stage startup environments.Experience with no/low-code platforms.Understanding of web performance optimization and best practices.Familiarity with Python FastAPI or similar backend frameworks.",
+    "industries": "Technology, Information and Internet"
+  },
+  {
+    "id": "4341568115",
+    "title": "Javascript DeveloperJavascript Developer",
+    "link": "https://www.linkedin.com/jobs/view/4341568115/",
+    "applyUrl": "https://www.linkedin.com/jobs/view/4341568115/",
+    "location": "Bengaluru, Karnataka, India (On-site)",
+    "postedAt": "3 days ago",
+    "companyName": "Weekday AI (YC W21)",
+    "companyLinkedinUrl": "https://www.linkedin.com/company/weekdayjobs",
+    "companyWebsite": "",
+    "companyDescription": "Curated top jobs for you",
+    "companyAddress": "",
+    "companyEmployeesCount": "11-50 employees",
+    "description": "About the job\n            \n\n            \n                \n                  This role is for one of the Weekday's clientsSalary range: Rs 400000 - Rs 600000 (ie INR 4-6 LPA)Min Experience: 0 yearsLocation: BangaloreJobType: full-timeWe are seeking highly motivated entry-level JavaScript Developers to join our Solutions team. In this role, you will work on real-world applications that power asset and inventory traceability for leading organizations. Your work will directly impact operational efficiency, and you'll get hands-on exposure to building scalable technology used across thousands of live deployments.This is a great opportunity for someone eager to learn, contribute, and grow rapidly within a fast-moving, high-impact environment. You will gain experience in IoT, system integration, and end-to-end solution delivery while improving your technical and problem-solving skills.RequirementsWhat You'll Do       Build and maintain web-based applications using JavaScript, HTML5, CSS, and SQL.  Collaborate with the solutions and engineering teams to deliver high-quality features and enhancements.  Support the development and customization of modules for real-time asset and inventory traceability.  Debug and resolve technical issues, ensuring stability and performance.  Participate in testing, deployment, and rollout across multiple client environments.  Continuously learn new tools, technologies, and best practices to improve system performance and user experience. \nWho We're Looking For       Self-driven, ambitious, and eager to learn with a passion for building technology.  Strong problem-solving mindset and ability to work in fast-paced environments.  Willingness to take ownership and grow quickly through hands-on experience. \nRequired Skills       JavaScript  SQL  HTML5  CSS",
     "industries": "Technology, Information and Internet"
   },
   {
@@ -72,7 +72,7 @@
     "postedAt": "",
     "companyName": "GoodSpace AI",
     "companyLinkedinUrl": "https://www.linkedin.com/company/goodspaceai",
-    "companyWebsite": "",
+    "companyWebsite": "https://lnkd.in/guF-Jfdz",
     "companyDescription": "AI powered recruitment platform that finds, shortlists and interviews candidates within a day!",
     "companyAddress": "",
     "companyEmployeesCount": "11-50 employees",
@@ -88,7 +88,7 @@
     "postedAt": "4 days ago",
     "companyName": "Team Geek Solutions",
     "companyLinkedinUrl": "https://www.linkedin.com/company/teamgeeksolutions",
-    "companyWebsite": "https://lnkd.in/ergVcf6s",
+    "companyWebsite": "",
     "companyDescription": "AI-Driven Solutions, Custom Software Development, Global Talent Optimization | Gen AI, Cloud, Cybersecurity & Automation",
     "companyAddress": "",
     "companyEmployeesCount": "51-200 employees",
@@ -112,20 +112,20 @@
     "industries": "Software Development"
   },
   {
-    "id": "4325982506",
-    "title": "Junior Software DeveloperJunior Software Developer",
-    "link": "https://www.linkedin.com/jobs/view/4325982506/",
-    "applyUrl": "https://acowale.zohorecruit.in/jobs/Careers/196319000001886715/Junior-Software-Developer?source=LinkedIn-Basic&embedsource=LinkedIn%2BLimited%2BListings",
-    "location": "Bengaluru, Karnataka, India (Remote)",
-    "postedAt": "3 days ago",
-    "companyName": "Acowale",
-    "companyLinkedinUrl": "https://www.linkedin.com/company/acowale",
+    "id": "4287513244",
+    "title": "UI Developer_FLK180225 \n    \n    \n\nUI Developer_FLK180225 with verification",
+    "link": "https://www.linkedin.com/jobs/view/4287513244/",
+    "applyUrl": "https://enterpriseminds.keka.com/careers/jobdetails/77954",
+    "location": "Bengaluru, Karnataka, India (On-site)",
+    "postedAt": "Reposted 2 days ago",
+    "companyName": "Enterprise Minds, Inc",
+    "companyLinkedinUrl": "https://www.linkedin.com/company/enterpriseminds",
     "companyWebsite": "",
-    "companyDescription": "One platform to connect, collaborate, and grow—together. Building the AI-powered operating system for India’s 60M+ SMBs.",
+    "companyDescription": "Enterprise Automation",
     "companyAddress": "",
-    "companyEmployeesCount": "51-200 employees",
-    "description": "About the job\n            \n\n            \n                \n                  Job Title: Junior Software Developer (Full Stack – React / Next.js / Node.js / TypeScript)Experience: 1–3 yearsEmployment Type: Full-TimeAbout the Role We’re looking for a Junior Software Developer who’s passionate about building scalable, user-centric web applications across the stack. You’ll work closely with our product, design, and engineering teams to develop intuitive frontends, robust APIs, and efficient backend systems.If you enjoy solving complex problems, love clean code, and want to grow in a product-driven startup, this is the perfect place for you.What You’ll Do Frontend Development      Develop responsive and high-performance user interfaces using React, Next.js, and TypeScript.Convert Figma designs into production-ready components.Manage state efficiently using Zustand, Redux, or similar libraries.Ensure pixel-perfect, accessible, and consistent UI experiences across devices.\nBackend Development      Build and maintain APIs using Node.js and Express.js.Work with databases like MongoDB or PostgreSQL for data modeling and queries.Integrate third-party services and internal APIs securely.Optimize backend logic for speed, scalability, and reliability.\nCollaboration & Quality      Work with designers and product managers to align features with real-world use.Test, debug, and refactor code for performance and maintainability.Participate in code reviews and team discussions.Continuously learn and stay updated with new tools and technologies.\nRequirements      Strong knowledge of JavaScript, TypeScript, React.js, Next.js, and Node.js.Experience with state management and API integrations.Understanding of RESTful APIs and JSON-based communication.Basic experience with databases (MongoDB / PostgreSQL).Familiarity with version control (Git) and testing tools (Postman, Jest).Solid debugging and analytical skills.Eagerness to learn, adapt, and collaborate in a fast-paced team.\nBonus Points For:       Familiarity with Cypress, CI/CD pipelines, or Docker.Awareness of UI/UX best practices and accessibility.Prior experience in startup environments or contributing to open-source projects.\nBenefits      Build next-gen AI-powered products shaping the future of business tools.Work directly with a passionate founding team and global tech mentors.Learn full-stack development from concept to deployment.Grow fast in a startup culture that values innovation, autonomy, and collaboration.\n\n                \n                \n                Desired Skills and Experience\n                \n                  Strong skills in ReactJS, Next.js, JavaScript, and TypeScript. \n Experience with state management (Zustand or similar). \n Proficiency in API integration and testing tools (Postman). \n Experience translating Figma/UX designs into production-ready UIs. \n Strong debugging, problem-solving, and analytical skills. \n Excellent communication and teamwork abilities. \n Preferred Qualifications Experience with testing frameworks (Jest, Cypress). \n Familiarity with CI/CD pipelines. \n Awareness of UI/UX principles and accessibility standards.",
-    "industries": "Technology, Information and Internet"
+    "companyEmployeesCount": "1K-5K employees",
+    "description": "About the job\n            \n\n            \n                \n                  Job Title: UI EngineerExperience: 2-5 Years (Relevant)Location: BangaloreJob DescriptionWe are looking for a UI Engineer with 2-5 years of relevant experience in web application development. The ideal candidate should have hands-on expertise in React.js, HTML, and CSS, along with a solid understanding of SDLC and Agile methodologies.Key Responsibilities      Develop high-quality code based on well-defined technical stories.Understand and contribute to the domain-specific track.Test and deploy code in a staging environment, ensuring adherence to SDLC guidelines.Provide timely updates during standups and deliver tasks within deadlines.Monitor production systems post-deployment for functional and non-functional correctness.\nRequired Skills      Technical: Proficiency in React.js, HTML, and CSS with hands-on experience in web application development.Soft Skills: Ability to adapt to a fast-paced environment, strong communication skills (verbal & written), and experience working in an Agile setup.\nIf you are passionate about UI development and enjoy working in a dynamic environment, apply now!",
+    "industries": "Software Development"
   },
   {
     "id": "4324976446",
@@ -144,19 +144,19 @@
     "industries": "Software Development"
   },
   {
-    "id": "4348613869",
-    "title": "Full-Stack DeveloperFull-Stack Developer",
-    "link": "https://www.linkedin.com/jobs/view/4348613869/",
-    "applyUrl": "https://www.linkedin.com/jobs/view/4348613869/",
-    "location": "India (Remote)",
-    "postedAt": "4 days ago",
-    "companyName": "Sunvoy",
-    "companyLinkedinUrl": "https://www.linkedin.com/company/sunvoy",
-    "companyWebsite": "https://www.sunvoy.com",
-    "companyDescription": "The first white label customer portal & solar fleet management app built by a solar installer for solar installers",
+    "id": "4342416972",
+    "title": "Software Engineer - React Developer \n    \n    \n\nSoftware Engineer - React Developer with verification",
+    "link": "https://www.linkedin.com/jobs/view/4342416972/",
+    "applyUrl": "https://cgi.njoyn.com/corp/xweb/xweb.asp?clid=21001&page=jobdetails&jobid=J1225-0570&BRID=1254101&SBDID=943&lang=1",
+    "location": "Bengaluru, Karnataka, India",
+    "postedAt": "1 day ago",
+    "companyName": "CGI",
+    "companyLinkedinUrl": "https://www.linkedin.com/company/cgi",
+    "companyWebsite": "https://www.cgi.com",
+    "companyDescription": "",
     "companyAddress": "",
-    "companyEmployeesCount": "11-50 employees",
-    "description": "About the job\n            \n\n            \n                \n                  Full-Stack Developer (Remote | International Talent Welcome)Frontend: React + Tailwind | Backend: Node.js + MongoDB“I tell my programmers to think carefully before they say something ‘can’t be done’. There isn’t that much that can’t be done with a little ingenuity.”– Satoru Iwata (Nintendo)If you’re the kind of developer who thrives on autonomy, values getting things done over attending meetings, and takes pride in clean, purposeful code — keep reading.We’re looking for a self-starting Full-Stack Developer to join our small remote team. You’ll have the flexibility to set your own schedule, work from anywhere, and focus on solving real problems — not sitting in Zoom meetings all day.What We're Looking For:      Fluent English – You communicate clearly and efficiently in written and spoken English.Proactive communicator – You keep teammates informed without overexplaining or waiting to be asked.Self-managed & accountable – You take ownership of tasks, don’t need micromanaging, and follow through without reminders.Independent problem-solver – You figure things out, quickly get comfortable with new tech, and aren’t afraid to dig in.Minimalist mindset – You value simplicity, avoid overengineering, and hate unnecessary meetings.AI-savvy – You use AI tools to enhance your work, while recognizing their limitations.End-to-end delivery – You can ship features from start to finish without handholding — the Swiss Army knife of developers.High-quality output – You work efficiently but never sacrifice code quality or user experience.\nTech Stack You’ll Be Working With:Frontend:      TypeScriptReact.jsTailwind CSSReact Router v7\nBackend:      Node.jsExpressMongoDBDockerAWS\nWhat You Get:      Fully remote work — set your schedule and work from anywhereCompetitive monthly pay: $800–$1,600 USD, based on experience and skillFlexible, asynchronous work environment — structure your day around your lifeA small, collaborative team that values results over rules\nIf you're tired of rigid structures, bloated codebases, and endless stand-ups — and instead want to work with people who trust you to get the job done — we’d love to hear from you.Apply now and show us what you’ve built.",
-    "industries": "Software Development"
+    "companyEmployeesCount": "10K+ employees",
+    "description": "About the job\n            \n\n            \n                \n                  Position DescriptionJob Title: React Developer Total Experience: 6–10 years in Front-End DevelopmentRelevant Experience in React: 4+ yearsLocation: Hyderabad / Pune / Mumbai / Bangalore / ChennaiJob SummaryWe are seeking a highly skilled React Developer with strong expertise in modern front-end technologies and proven experience in migrating legacy UI applications to React. The ideal candidate will have hands-on experience in designing scalable, maintainable, and high-performing user interfaces while modernizing existing systems. This role requires deep knowledge of React.js, JavaScript/TypeScript, and front-end architecture, along with the ability to collaborate across teams to deliver seamless user experiences.Key Responsibilities       Lead migration of legacy UI applications to React, ensuring performance, scalability, and maintainability. Design and develop reusable components, hooks, and state management solutions (Redux/Context API). Utilise AI code accelerators for faster migration. Optimize applications for maximum speed and scalability. Integrate front-end components with RESTful APIs and backend services. Conduct code reviews, enforce best practices, and mentor junior developers. Troubleshoot, debug, and resolve UI/UX issues during migration and post-deployment. Document technical designs, migration strategies, and provide training/support to stakeholders.\nKey Requirements       4 to 6 years of front-end development experience, with at least 4+ years in React.js. Strong expertise in React.js, JavaScript (ES6+), TypeScript, HTML5, CSS3, SAAS, and modern front-end frameworks. Proven experience in migrating legacy UI frameworks (Silverlight, AngularJS, jQuery, JSP, etc.) to React. Hands-on experience with state management libraries (Redux, MobX, Context API). Familiarity with build tools and bundlers (Webpack, Babel, Vite). Strong understanding of responsive design, cross-browser compatibility, accessibility standards. Should have sound understanding of SEO concepts. Experience integrating with RESTful APIs and microservices. Excellent problem-solving, analytical, and communication skills. Basic understanding of backend tech (Node.js, Express).\nPreferred Skills       Exposure to testing frameworks (Jest, React Testing Library, Cypress). Experience with Next.js, server-side rendering (SSR), and static site generation (SSG). Knowledge of CI/CD pipelines and DevOps practices. Experience with cloud platforms (AWS, Azure, GCP) for front-end deployments. Familiarity with performance monitoring tools (Lighthouse, New Relic). Strong collaboration skills and ability to work in agile environments.\nYour future duties and responsibilitiesRequired Qualifications To Be Successful In This RoleTogether, as owners, let’s turn meaningful insights into action.Life at CGI is rooted in ownership, teamwork, respect and belonging. Here, you’ll reach your full potential because…You are invited to be an owner from day 1 as we work together to bring our Dream to life. That’s why we call ourselves CGI Partners rather than employees. We benefit from our collective success and actively shape our company’s strategy and direction.Your work creates value. You’ll develop innovative solutions and build relationships with teammates and clients while accessing global capabilities to scale your ideas, embrace new opportunities, and benefit from expansive industry and technology expertise.You’ll shape your career by joining a company built to grow and last. You’ll be supported by leaders who care about your health and well-being and provide you with opportunities to deepen your skills and broaden your horizons.Come join our team—one of the largest IT and business consulting services firms in the world.",
+    "industries": "IT Services and IT Consulting"
   }
 ]

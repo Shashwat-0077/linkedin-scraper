@@ -31,16 +31,16 @@
         "web-scraping",
         "gmail-api"
     ],
-    "author": "Your Name <your.email@example.com>",
+    "author": "Shashwat Gupta <shashwatg0077@gmail.com>",
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/yourusername/linkedin-job-scraper.git"
+        "url": "https://github.com/shashwat-0077/linkedin-job-scraper.git"
     },
     "bugs": {
-        "url": "https://github.com/yourusername/linkedin-job-scraper/issues"
+        "url": "https://github.com/shashwat-0077/linkedin-job-scraper/issues"
     },
-    "homepage": "https://github.com/yourusername/linkedin-job-scraper#readme",
+    "homepage": "https://github.com/shashwat-0077/linkedin-job-scraper#readme",
     "publishConfig": {
         "access": "public"
     },
@@ -48,9 +48,7 @@
         "dotenv": "^16.6.1",
         "google-auth-library": "^10.5.0",
         "googleapis": "^167.0.0",
-        "node-latex": "^3.1.0",
-        "playwright": "^1.40.0",
-        "texlive": "^1.2.0"
+        "playwright": "^1.40.0"
     },
     "devDependencies": {
         "@types/node": "^20.10.0",

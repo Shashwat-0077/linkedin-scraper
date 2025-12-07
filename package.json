@@ -1,41 +1,63 @@
 {
-    "name": "linkedin-job-scraper",
+    "name": "@yourusername/linkedin-job-scraper",
     "version": "1.0.0",
-    "description": "LinkedIn job scraper using Playwright and TypeScript",
+    "description": "Automated LinkedIn job scraper with session persistence and Gmail verification code fetching",
     "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
     "type": "module",
+    "files": [
+        "dist",
+        "scripts",
+        "README.md",
+        ".env.example",
+        "linkedin-scraper.config.example.cjs"
+    ],
     "scripts": {
         "build": "tsc",
-        "start": "npm run build && node dist/index.js",
-        "dev": "tsx src/index.ts",
-        "api": "tsx src/api/server.ts",
-        "api:build": "tsc && node dist/api/server.js",
+        "prepare": "npm run build",
+        "prepack": "npm run build",
+        "example": "tsx examples/basic-usage.ts",
+        "gmail:token": "node scripts/generate-gmail-token.cjs",
         "install-browsers": "npx playwright install chromium"
     },
     "keywords": [
         "linkedin",
         "scraper",
-        "playwright",
         "jobs",
-        "typescript"
+        "playwright",
+        "automation",
+        "job-search",
+        "web-scraping",
+        "gmail-api"
     ],
-    "author": "",
-    "license": "ISC",
+    "author": "Your Name <your.email@example.com>",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/yourusername/linkedin-job-scraper.git"
+    },
+    "bugs": {
+        "url": "https://github.com/yourusername/linkedin-job-scraper/issues"
+    },
+    "homepage": "https://github.com/yourusername/linkedin-job-scraper#readme",
+    "publishConfig": {
+        "access": "public"
+    },
     "dependencies": {
-        "cors": "^2.8.5",
-        "dotenv": "^16.3.1",
-        "express": "^5.2.1",
-        "express-rate-limit": "^8.2.1",
-        "express-validator": "^7.3.1",
+        "dotenv": "^16.6.1",
         "google-auth-library": "^10.5.0",
         "googleapis": "^167.0.0",
-        "playwright": "^1.40.0"
+        "node-latex": "^3.1.0",
+        "playwright": "^1.40.0",
+        "texlive": "^1.2.0"
     },
     "devDependencies": {
-        "@types/cors": "^2.8.19",
-        "@types/express": "^5.0.6",
         "@types/node": "^20.10.0",
         "tsx": "^4.7.0",
         "typescript": "^5.3.0"
+    },
+    "engines": {
+        "node": ">=18.0.0"
     }
 }

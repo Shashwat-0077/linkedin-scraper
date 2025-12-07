@@ -1,4 +1,7 @@
+# Ignore patterns
 *.csv
+*.log
+npm-debug.log*
 
 # OS
 .DS_Store
@@ -8,11 +11,29 @@ Thumbs.db
 playwright-report/
 test-results/
 
+# Python
 */__pycache__
-
 /.venv/
 
+# Environment and secrets
 .env
+linkedin-session.json
+token.json
+
+# User config (may contain sensitive data)
+linkedin-scraper.config.js
+linkedin-scraper.config.cjs
+
+# Dependencies
 /node_modules/
-package-lock.json
+
+# Build output
 /dist/
+
+# Development/testing
+/output/
+/sessions/
+
+# Editor
+.vscode/
+.idea/

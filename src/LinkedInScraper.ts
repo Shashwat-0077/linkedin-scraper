@@ -1,6 +1,8 @@
 import { chromium, Browser, Page, BrowserContext } from 'playwright';
 import { config } from './config.js';
 import { Job, SearchFilters, LinkedInFilters } from './types.js';
+import fs from 'fs';
+import path from 'path';
 
 interface CompanyDetails {
     companyWebsite: string;
@@ -10,13 +12,34 @@ interface CompanyDetails {
     industries: string;
 }
 
+export interface LinkedInScraperOptions {
+    email: string;
+    password: string;
+    headless?: boolean;
+    gmailClientId: string;
+    gmailClientSecret: string;
+    gmailRedirectUri: string;
+    gmailRefreshToken: string;
+    gmailAccessToken: string;
+    sessionFile?: string;
+    tokenFile?: string;
+}
+
 export class LinkedInScraper {
     private email: string;
     private password: string;
     private headless: boolean;
     private browser: Browser | null = null;
+    private context: BrowserContext | null = null;
     private page: Page | null = null;
     private loggedIn: boolean = false;
+    private sessionFile: string;
+    private gmailClientId: string;
+    private gmailClientSecret: string;
+    private gmailRedirectUri: string;
+    private gmailRefreshToken: string;
+    private gmailAccessToken: string;
+    private tokenFile: string;
 
     // Company details extraction system
     private companyQueue: Set<string> = new Set();
@@ -25,10 +48,97 @@ export class LinkedInScraper {
     private companyWorkerPage: Page | null = null;
     private isProcessingQueue: boolean = false;
 
-    constructor(email?: string, password?: string, headless?: boolean) {
-        this.email = email || config.EMAIL;
-        this.password = password || config.PASSWORD;
-        this.headless = headless !== undefined ? headless : config.HEADLESS;
+    constructor(options: LinkedInScraperOptions) {
+        // Validate required credentials
+        if (!options.email || !options.password) {
+            throw new Error('LinkedIn email and password are required');
+        }
+
+        if (
+            !options.gmailClientId ||
+            !options.gmailClientSecret ||
+            !options.gmailRedirectUri ||
+            !options.gmailRefreshToken ||
+            !options.gmailAccessToken
+        ) {
+            throw new Error(
+                'All Gmail API credentials are required (clientId, clientSecret, redirectUri, refreshToken, accessToken)',
+            );
+        }
+
+        // LinkedIn credentials
+        this.email = options.email;
+        this.password = options.password;
+        this.headless = options.headless ?? false;
+
+        // Gmail API credentials
+        this.gmailClientId = options.gmailClientId;
+        this.gmailClientSecret = options.gmailClientSecret;
+        this.gmailRedirectUri = options.gmailRedirectUri;
+        this.gmailRefreshToken = options.gmailRefreshToken;
+        this.gmailAccessToken = options.gmailAccessToken;
+
+        // File paths - use provided or fall back to config
+        this.sessionFile = options.sessionFile || config.SESSION_FILE;
+        this.tokenFile = options.tokenFile || config.TOKEN_FILE;
+    }
+
+    /**
+     * Get Gmail configuration for use in GmailService
+     */
+    getGmailConfig() {
+        return {
+            clientId: this.gmailClientId,
+            clientSecret: this.gmailClientSecret,
+            redirectUri: this.gmailRedirectUri,
+            refreshToken: this.gmailRefreshToken,
+            accessToken: this.gmailAccessToken,
+        };
+    }
+
+    /**
+     * Save cookies to file for session persistence
+     */
+    private async saveCookies(): Promise<void> {
+        try {
+            if (!this.context) return;
+
+            const cookies = await this.context.cookies();
+
+            // Ensure directory exists
+            const dir = path.dirname(this.sessionFile);
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+
+            fs.writeFileSync(this.sessionFile, JSON.stringify(cookies, null, 2), 'utf-8');
+            console.log('✓ Session saved');
+        } catch (error) {
+            console.log('⚠ Failed to save session:', (error as Error).message);
+        }
+    }
+
+    /**
+     * Load cookies from file if they exist
+     */
+    private async loadCookies(): Promise<boolean> {
+        try {
+            if (!fs.existsSync(this.sessionFile)) {
+                return false;
+            }
+
+            const cookiesData = fs.readFileSync(this.sessionFile, 'utf-8');
+            const cookies = JSON.parse(cookiesData);
+
+            if (!this.context) return false;
+
+            await this.context.addCookies(cookies);
+            console.log('✓ Session loaded from file');
+            return true;
+        } catch (error) {
+            console.log('⚠ Failed to load session:', (error as Error).message);
+            return false;
+        }
     }
 
     private async initBrowser(): Promise<void> {
@@ -40,12 +150,13 @@ export class LinkedInScraper {
             args: ['--no-sandbox', '--disable-dev-shm-usage'],
         });
 
-        this.page = await this.browser.newPage();
-
-        await this.page.setExtraHTTPHeaders({
-            'User-Agent':
+        // Create a persistent context
+        this.context = await this.browser.newContext({
+            userAgent:
                 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         });
+
+        this.page = await this.context.newPage();
 
         console.log('✓ Browser initialized');
     }
@@ -56,26 +167,18 @@ export class LinkedInScraper {
         console.log('🔧 Initializing company details worker...');
 
         // Create separate browser context for company scraping
-        this.companyWorkerContext = await this.browser.newContext();
-        this.companyWorkerPage = await this.companyWorkerContext.newPage();
-
-        // Set same headers as main page
-        await this.companyWorkerPage.setExtraHTTPHeaders({
-            'User-Agent':
+        this.companyWorkerContext = await this.browser.newContext({
+            userAgent:
                 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         });
 
-        // Login to LinkedIn in worker context
-        console.log('🔐 Logging into LinkedIn in worker context...');
-        try {
-            await this.companyWorkerPage.goto(config.LOGIN_URL, { waitUntil: 'domcontentloaded' });
-            await this.companyWorkerPage.fill('#username', this.email);
-            await this.companyWorkerPage.fill('#password', this.password);
-            await this.companyWorkerPage.click('button[type="submit"]');
-            await this.companyWorkerPage.waitForTimeout(3000);
-            console.log('✓ Worker logged in successfully');
-        } catch (error) {
-            console.log('⚠ Worker login failed, continuing anyway...');
+        this.companyWorkerPage = await this.companyWorkerContext.newPage();
+
+        // Share the session cookies from main context
+        if (this.context) {
+            const cookies = await this.context.cookies();
+            await this.companyWorkerContext.addCookies(cookies);
+            console.log('✓ Session shared with company worker');
         }
 
         console.log('✓ Company worker initialized and ready');
@@ -249,6 +352,26 @@ export class LinkedInScraper {
         }
 
         try {
+            // Try to load saved session first
+            const sessionLoaded = await this.loadCookies();
+
+            if (sessionLoaded) {
+                console.log('Checking saved session...');
+                // Navigate to feed to check if session is still valid
+                await this.page.goto('https://www.linkedin.com/feed/', { waitUntil: 'domcontentloaded' });
+                await this.page.waitForTimeout(2000);
+
+                const currentUrl = this.page.url();
+                if (currentUrl.includes('feed') || currentUrl.includes('mynetwork') || currentUrl.includes('jobs')) {
+                    console.log('✓ Logged in using saved session!');
+                    this.loggedIn = true;
+                    return true;
+                } else {
+                    console.log('⚠ Saved session expired, logging in again...');
+                }
+            }
+
+            // Session doesn't exist or expired - perform regular login
             console.log('Logging into LinkedIn...');
             await this.page.goto(config.LOGIN_URL, { waitUntil: 'domcontentloaded' });
 
@@ -262,43 +385,62 @@ export class LinkedInScraper {
             if (currentUrl.includes('feed') || currentUrl.includes('mynetwork') || currentUrl.includes('jobs')) {
                 console.log('✓ Login successful!');
                 this.loggedIn = true;
+                // Save cookies for future sessions
+                await this.saveCookies();
                 return true;
             } else if (currentUrl.includes('challenge') || currentUrl.includes('checkpoint')) {
                 console.log('🔐 LinkedIn security challenge detected!');
 
                 // Check if it's a verification code challenge
-                const codeInput = await this.page.$('input[name="pin"], input[id*="verification"], input[id*="pin"]');
+                // Try multiple selectors for the verification code input
+                const inputSelectors = [
+                    'input[name="pin"]',
+                    'input[id*="verification"]',
+                    'input[id*="pin"]',
+                    'input[aria-label*="code"]',
+                    'input[placeholder*="code"]',
+                    'input[placeholder*="Enter code"]',
+                ];
+
+                let codeInput = null;
+                for (const selector of inputSelectors) {
+                    codeInput = await this.page.$(selector);
+                    if (codeInput) {
+                        console.log(`   ✓ Found input field with selector: ${selector}`);
+                        break;
+                    }
+                }
 
                 if (codeInput) {
-                    console.log('📧 Attempting to fetch verification code from Gmail...');
+                    console.log('📧 Attempting to fetch verification code from Gmail API...');
 
                     try {
                         // Import Gmail service
-                        const { GmailService } = await import('./gmailService.js');
-                        const gmailService = new GmailService();
+                        const { GmailService } = await import('./services/GmailService.js');
+                        const gmailService = new GmailService(this.getGmailConfig());
 
-                        // Create new browser context for Gmail
-                        const gmailContext = await this.browser!.newContext();
-
-                        // Fetch code from Gmail using new context
-                        const verificationCode = await gmailService.loginAndFetchCode(
-                            gmailContext,
-                            config.GMAIL_EMAIL,
-                            config.GMAIL_PASSWORD,
-                        );
+                        // Fetch code from Gmail using Gmail API
+                        const verificationCode = await gmailService.fetchVerificationCode();
 
                         if (verificationCode) {
                             console.log(`✓ Verification code received: ${verificationCode}`);
 
-                            // Close Gmail context
-                            await gmailContext.close();
+                            // Wait a bit for the page to be ready
+                            await this.page.waitForTimeout(1000);
+
+                            // Try to make the input visible and focused
+                            await codeInput.scrollIntoViewIfNeeded().catch(() => {});
+                            await codeInput.click().catch(() => {});
+                            await this.page.waitForTimeout(500);
 
                             // Enter the code
                             await codeInput.fill(verificationCode);
                             await this.page.waitForTimeout(1000);
 
                             // Submit the form
-                            const submitButton = await this.page.$('button[type="submit"], button[id*="submit"]');
+                            const submitButton = await this.page.$(
+                                'button[type="submit"], button[id*="submit"], button:has-text("Submit")',
+                            );
                             if (submitButton) {
                                 await submitButton.click();
                                 await this.page.waitForTimeout(3000);
@@ -312,16 +454,16 @@ export class LinkedInScraper {
                                 ) {
                                     console.log('✓ Verification successful!');
                                     this.loggedIn = true;
+                                    // Save cookies after successful verification
+                                    await this.saveCookies();
                                     return true;
                                 }
                             }
                         } else {
-                            console.log('⚠ Could not fetch verification code from Gmail');
-                            // Close Gmail context
-                            await gmailContext.close();
+                            console.log('⚠ Could not fetch verification code from Gmail API');
                         }
                     } catch (gmailError) {
-                        console.log('⚠ Gmail fetch failed:', (gmailError as Error).message);
+                        console.log('⚠ Gmail API failed:', (gmailError as Error).message);
                     }
                 }
 
@@ -335,6 +477,8 @@ export class LinkedInScraper {
                     });
                     console.log('✓ Challenge completed!');
                     this.loggedIn = true;
+                    // Save cookies after successful manual verification
+                    await this.saveCookies();
                     return true;
                 } catch (timeoutError) {
                     console.log('✗ Challenge completion timeout');

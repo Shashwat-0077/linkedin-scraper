@@ -1,0 +1,18 @@
+# Exclude from npm package
+.git
+.gitignore
+.env
+.env.example
+linkedin-scraper.config.cjs
+linkedin-scraper.config.js
+linkedin-session.json
+token.json
+tsconfig.json
+examples/
+output/
+sessions/
+src/
+node_modules/
+*.log
+.vscode/
+.idea/

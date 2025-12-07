@@ -6,10 +6,12 @@ export interface GmailCredentials {
     redirectUri: string;
     refreshToken: string;
     accessToken: string;
+    silent?: boolean;
 }
 
 export class GmailService {
     private oauth2Client: any;
+    private silent: boolean;
 
     constructor(credentials: GmailCredentials) {
         if (
@@ -36,6 +38,18 @@ export class GmailService {
             access_token: credentials.accessToken,
             refresh_token: credentials.refreshToken,
         });
+
+        // Silent mode
+        this.silent = credentials.silent ?? false;
+    }
+
+    /**
+     * Helper method for logging that respects silent mode
+     */
+    private log(...args: any[]): void {
+        if (!this.silent) {
+            console.log(...args);
+        }
     }
 
     /**
@@ -44,7 +58,7 @@ export class GmailService {
      */
     async fetchVerificationCode(): Promise<string | null> {
         try {
-            console.log('   📧 Fetching verification code from Gmail...');
+            this.log('   📧 Fetching verification code from Gmail...');
 
             const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
 
@@ -58,18 +72,18 @@ export class GmailService {
             const messages = res.data.messages || [];
 
             if (!messages.length) {
-                console.log('   ⚠ No verification emails found');
+                this.log('   ⚠ No verification emails found');
                 return null;
             }
 
             // Get the most recent message
             const latestMessageId = messages[0].id;
             if (!latestMessageId) {
-                console.log('   ⚠ No message ID found');
+                this.log('   ⚠ No message ID found');
                 return null;
             }
 
-            console.log('   ✓ Found verification email');
+            this.log('   ✓ Found verification email');
 
             // Fetch the full message
             const msgRes = await gmail.users.messages.get({
@@ -83,7 +97,7 @@ export class GmailService {
 
             // Get subject to verify it's a verification email
             const subject = headers.find((h) => h.name?.toLowerCase() === 'subject')?.value || '';
-            console.log(`   📄 Subject: ${subject}`);
+            this.log(`   📄 Subject: ${subject}`);
 
             // Extract email body
             const body = this.getPlainTextBody(msg.payload);
@@ -91,15 +105,15 @@ export class GmailService {
             if (body) {
                 const code = this.extractCode(body);
                 if (code) {
-                    console.log(`   ✓ Extracted code: ${code}`);
+                    this.log(`   ✓ Extracted code: ${code}`);
                     return code;
                 }
             }
 
-            console.log('   ⚠ Could not extract code from email');
+            this.log('   ⚠ Could not extract code from email');
             return null;
         } catch (error) {
-            console.log('   ⚠ Gmail API error:', (error as Error).message);
+            this.log('   ⚠ Gmail API error:', (error as Error).message);
             return null;
         }
     }

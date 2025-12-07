@@ -46,6 +46,7 @@ export class LinkedInScraper {
     private gmailRefreshToken: string;
     private gmailAccessToken: string;
     private tokenFile: string;
+    private silent: boolean;
 
     // Company details extraction system
     private companyQueue: Set<string> = new Set();
@@ -74,9 +75,16 @@ export class LinkedInScraper {
         this.sessionFile = loadedConfig.sessionFile || config.SESSION_FILE;
         this.tokenFile = loadedConfig.tokenFile || config.TOKEN_FILE;
 
-        // Silent mode - suppress all console output
-        if (loadedConfig.silent) {
-            console.log = () => {};
+        // Silent mode - store flag for use in log() method
+        this.silent = loadedConfig.silent ?? false;
+    }
+
+    /**
+     * Helper method for logging that respects silent mode
+     */
+    private log(...args: any[]): void {
+        if (!this.silent) {
+            console.log(...args);
         }
     }
 
@@ -90,6 +98,7 @@ export class LinkedInScraper {
             redirectUri: this.gmailRedirectUri,
             refreshToken: this.gmailRefreshToken,
             accessToken: this.gmailAccessToken,
+            silent: this.silent,
         };
     }
 
@@ -109,9 +118,9 @@ export class LinkedInScraper {
             }
 
             fs.writeFileSync(this.sessionFile, JSON.stringify(cookies, null, 2), 'utf-8');
-            console.log('✓ Session saved');
+            this.log('✓ Session saved');
         } catch (error) {
-            console.log('⚠ Failed to save session:', (error as Error).message);
+            this.log('⚠ Failed to save session:', (error as Error).message);
         }
     }
 
@@ -130,10 +139,10 @@ export class LinkedInScraper {
             if (!this.context) return false;
 
             await this.context.addCookies(cookies);
-            console.log('✓ Session loaded from file');
+            this.log('✓ Session loaded from file');
             return true;
         } catch (error) {
-            console.log('⚠ Failed to load session:', (error as Error).message);
+            this.log('⚠ Failed to load session:', (error as Error).message);
             return false;
         }
     }
@@ -141,7 +150,7 @@ export class LinkedInScraper {
     private async initBrowser(): Promise<void> {
         if (this.browser) return;
 
-        console.log('Initializing browser...');
+        this.log('Initializing browser...');
         this.browser = await chromium.launch({
             headless: this.headless,
             args: ['--no-sandbox', '--disable-dev-shm-usage'],
@@ -155,13 +164,13 @@ export class LinkedInScraper {
 
         this.page = await this.context.newPage();
 
-        console.log('✓ Browser initialized');
+        this.log('✓ Browser initialized');
     }
 
     private async initCompanyWorker(): Promise<void> {
         if (!this.browser || this.companyWorkerContext) return;
 
-        console.log('🔧 Initializing company details worker...');
+        this.log('🔧 Initializing company details worker...');
 
         // Create separate browser context for company scraping
         this.companyWorkerContext = await this.browser.newContext({
@@ -175,10 +184,10 @@ export class LinkedInScraper {
         if (this.context) {
             const cookies = await this.context.cookies();
             await this.companyWorkerContext.addCookies(cookies);
-            console.log('✓ Session shared with company worker');
+            this.log('✓ Session shared with company worker');
         }
 
-        console.log('✓ Company worker initialized and ready');
+        this.log('✓ Company worker initialized and ready');
     }
 
     private async scrapeCompanyDetailsInWorker(companyUrl: string): Promise<CompanyDetails> {
@@ -195,7 +204,7 @@ export class LinkedInScraper {
         }
 
         try {
-            console.log(`      🏢 Fetching: ${companyUrl.split('/').pop()}`);
+            this.log(`      🏢 Fetching: ${companyUrl.split('/').pop()}`);
 
             await this.companyWorkerPage.goto(companyUrl, {
                 waitUntil: 'domcontentloaded',
@@ -292,10 +301,10 @@ export class LinkedInScraper {
                 // Address not found
             }
 
-            console.log(`      ✓ Extracted details for ${companyUrl.split('/').pop()}`);
+            this.log(`      ✓ Extracted details for ${companyUrl.split('/').pop()}`);
             return details;
         } catch (error) {
-            console.log(`      ⚠ Error: ${(error as Error).message}`);
+            this.log(`      ⚠ Error: ${(error as Error).message}`);
             return defaultDetails;
         }
     }
@@ -304,12 +313,12 @@ export class LinkedInScraper {
         if (this.isProcessingQueue || !this.companyWorkerPage) return;
 
         this.isProcessingQueue = true;
-        console.log(`\n🔄 Processing ${this.companyQueue.size} companies in parallel...`);
+        this.log(`\n🔄 Processing ${this.companyQueue.size} companies in parallel...`);
 
         for (const companyUrl of this.companyQueue) {
             // Skip if already cached
             if (this.companyDetailsCache.has(companyUrl)) {
-                console.log(`      ⏭️  Cached: ${companyUrl.split('/').pop()}`);
+                this.log(`      ⏭️  Cached: ${companyUrl.split('/').pop()}`);
                 continue;
             }
 
@@ -317,7 +326,7 @@ export class LinkedInScraper {
                 const details = await this.scrapeCompanyDetailsInWorker(companyUrl);
                 this.companyDetailsCache.set(companyUrl, details);
             } catch (error) {
-                console.log(`      ⚠ Failed: ${companyUrl.split('/').pop()}`);
+                this.log(`      ⚠ Failed: ${companyUrl.split('/').pop()}`);
                 // Cache empty details to avoid retrying
                 this.companyDetailsCache.set(companyUrl, {
                     companyWebsite: '',
@@ -329,7 +338,7 @@ export class LinkedInScraper {
             }
         }
 
-        console.log(`✓ Finished processing company details\n`);
+        this.log(`✓ Finished processing company details\n`);
         this.isProcessingQueue = false;
     }
 
@@ -353,23 +362,23 @@ export class LinkedInScraper {
             const sessionLoaded = await this.loadCookies();
 
             if (sessionLoaded) {
-                console.log('Checking saved session...');
+                this.log('Checking saved session...');
                 // Navigate to feed to check if session is still valid
                 await this.page.goto('https://www.linkedin.com/feed/', { waitUntil: 'domcontentloaded' });
                 await this.page.waitForTimeout(2000);
 
                 const currentUrl = this.page.url();
                 if (currentUrl.includes('feed') || currentUrl.includes('mynetwork') || currentUrl.includes('jobs')) {
-                    console.log('✓ Logged in using saved session!');
+                    this.log('✓ Logged in using saved session!');
                     this.loggedIn = true;
                     return true;
                 } else {
-                    console.log('⚠ Saved session expired, logging in again...');
+                    this.log('⚠ Saved session expired, logging in again...');
                 }
             }
 
             // Session doesn't exist or expired - perform regular login
-            console.log('Logging into LinkedIn...');
+            this.log('Logging into LinkedIn...');
             await this.page.goto(config.LOGIN_URL, { waitUntil: 'domcontentloaded' });
 
             await this.page.fill('#username', this.email);
@@ -380,13 +389,13 @@ export class LinkedInScraper {
             const currentUrl = this.page.url();
 
             if (currentUrl.includes('feed') || currentUrl.includes('mynetwork') || currentUrl.includes('jobs')) {
-                console.log('✓ Login successful!');
+                this.log('✓ Login successful!');
                 this.loggedIn = true;
                 // Save cookies for future sessions
                 await this.saveCookies();
                 return true;
             } else if (currentUrl.includes('challenge') || currentUrl.includes('checkpoint')) {
-                console.log('🔐 LinkedIn security challenge detected!');
+                this.log('🔐 LinkedIn security challenge detected!');
 
                 // Check if it's a verification code challenge
                 // Try multiple selectors for the verification code input
@@ -403,13 +412,13 @@ export class LinkedInScraper {
                 for (const selector of inputSelectors) {
                     codeInput = await this.page.$(selector);
                     if (codeInput) {
-                        console.log(`   ✓ Found input field with selector: ${selector}`);
+                        this.log(`   ✓ Found input field with selector: ${selector}`);
                         break;
                     }
                 }
 
                 if (codeInput) {
-                    console.log('📧 Attempting to fetch verification code from Gmail API...');
+                    this.log('📧 Attempting to fetch verification code from Gmail API...');
 
                     try {
                         // Import Gmail service
@@ -420,7 +429,7 @@ export class LinkedInScraper {
                         const verificationCode = await gmailService.fetchVerificationCode();
 
                         if (verificationCode) {
-                            console.log(`✓ Verification code received: ${verificationCode}`);
+                            this.log(`✓ Verification code received: ${verificationCode}`);
 
                             // Wait a bit for the page to be ready
                             await this.page.waitForTimeout(1000);
@@ -449,7 +458,7 @@ export class LinkedInScraper {
                                     newUrl.includes('jobs') ||
                                     newUrl.includes('mynetwork')
                                 ) {
-                                    console.log('✓ Verification successful!');
+                                    this.log('✓ Verification successful!');
                                     this.loggedIn = true;
                                     // Save cookies after successful verification
                                     await this.saveCookies();
@@ -457,36 +466,36 @@ export class LinkedInScraper {
                                 }
                             }
                         } else {
-                            console.log('⚠ Could not fetch verification code from Gmail API');
+                            this.log('⚠ Could not fetch verification code from Gmail API');
                         }
                     } catch (gmailError) {
-                        console.log('⚠ Gmail API failed:', (gmailError as Error).message);
+                        this.log('⚠ Gmail API failed:', (gmailError as Error).message);
                     }
                 }
 
                 // Fallback to manual entry
-                console.log('⚠ Please complete the security challenge manually in the browser.');
-                console.log('   Waiting up to 2 minutes...');
+                this.log('⚠ Please complete the security challenge manually in the browser.');
+                this.log('   Waiting up to 2 minutes...');
 
                 try {
                     await this.page.waitForURL((url) => url.href.includes('feed') || url.href.includes('jobs'), {
                         timeout: 120000,
                     });
-                    console.log('✓ Challenge completed!');
+                    this.log('✓ Challenge completed!');
                     this.loggedIn = true;
                     // Save cookies after successful manual verification
                     await this.saveCookies();
                     return true;
                 } catch (timeoutError) {
-                    console.log('✗ Challenge completion timeout');
+                    this.log('✗ Challenge completion timeout');
                     return false;
                 }
             } else {
-                console.log('⚠ Login status unclear. Current URL:', currentUrl);
+                this.log('⚠ Login status unclear. Current URL:', currentUrl);
                 return false;
             }
         } catch (error) {
-            console.error('✗ Login failed:', (error as Error).message);
+            this.log('✗ Login failed:', (error as Error).message);
             return false;
         }
     }
@@ -551,19 +560,19 @@ export class LinkedInScraper {
         const allJobs: Job[] = [];
 
         try {
-            console.log(`\n📋 Scraping up to ${maxJobs} job listings...`);
-            console.log('   Waiting for job listings to load...');
+            this.log(`\n📋 Scraping up to ${maxJobs} job listings...`);
+            this.log('   Waiting for job listings to load...');
 
             await this.page.waitForTimeout(5000);
 
             // LinkedIn uses pagination - scrape jobs page by page
-            console.log('   Scraping jobs through pagination...');
+            this.log('   Scraping jobs through pagination...');
 
             let currentPage = 1;
             const maxPages = Math.ceil(maxJobs / 25); // LinkedIn shows ~25 jobs per page
 
             while (allJobs.length < maxJobs && currentPage <= maxPages) {
-                console.log(`   📄 Processing page ${currentPage}...`);
+                this.log(`   📄 Processing page ${currentPage}...`);
 
                 // Wait for jobs to load on current page
                 await this.page.waitForTimeout(2000);
@@ -582,13 +591,13 @@ export class LinkedInScraper {
                 for (const selector of selectors) {
                     jobCards = await this.page.$$(selector);
                     if (jobCards.length > 0) {
-                        console.log(`   ✓ Found ${jobCards.length} jobs on page ${currentPage}`);
+                        this.log(`   ✓ Found ${jobCards.length} jobs on page ${currentPage}`);
                         break;
                     }
                 }
 
                 if (jobCards.length === 0) {
-                    console.log(`   ⚠ No jobs found on page ${currentPage}`);
+                    this.log(`   ⚠ No jobs found on page ${currentPage}`);
                     break;
                 }
 
@@ -680,7 +689,7 @@ export class LinkedInScraper {
                                         if (!this.isProcessingQueue) {
                                             // Fire and forget - process in parallel
                                             this.processCompanyQueue().catch((err) => {
-                                                console.log('⚠ Queue processing error:', err.message);
+                                                this.log('⚠ Queue processing error:', err.message);
                                             });
                                         }
                                     }
@@ -733,7 +742,7 @@ export class LinkedInScraper {
                                         applyUrl = link;
                                     } else {
                                         // External Apply - intercept the redirect URL
-                                        console.log(`      🔗 Detecting external apply URL...`);
+                                        this.log(`      🔗 Detecting external apply URL...`);
 
                                         try {
                                             // Listen for popup or new page
@@ -749,7 +758,7 @@ export class LinkedInScraper {
                                             try {
                                                 const popup = await popupPromise;
                                                 applyUrl = popup.url();
-                                                console.log(`      ✓ Captured: ${applyUrl.substring(0, 60)}...`);
+                                                this.log(`      ✓ Captured: ${applyUrl.substring(0, 60)}...`);
 
                                                 // Close the popup
                                                 await popup.close();
@@ -759,7 +768,7 @@ export class LinkedInScraper {
                                                 if (!currentUrl.includes('/jobs/view/')) {
                                                     // Page navigated to external site
                                                     applyUrl = currentUrl;
-                                                    console.log(
+                                                    this.log(
                                                         `      ✓ Captured via navigation: ${applyUrl.substring(
                                                             0,
                                                             60,
@@ -772,7 +781,7 @@ export class LinkedInScraper {
                                             }
                                         } catch (e) {
                                             // Failed to intercept - keep default
-                                            console.log(`      ⚠ Could not capture external URL`);
+                                            this.log(`      ⚠ Could not capture external URL`);
                                         }
                                     }
                                 }
@@ -780,7 +789,7 @@ export class LinkedInScraper {
                                 // Keep default applyUrl as link
                             }
                         } catch (detailError) {
-                            console.log(`   ⚠ Could not load all details for job ${allJobs.length + 1}`);
+                            this.log(`   ⚠ Could not load all details for job ${allJobs.length + 1}`);
                         }
 
                         const job: Job = {
@@ -801,16 +810,16 @@ export class LinkedInScraper {
                         };
 
                         allJobs.push(job);
-                        console.log(`   ✓ Scraped ${allJobs.length}/${maxJobs}: ${job.title} at ${job.companyName}`);
+                        this.log(`   ✓ Scraped ${allJobs.length}/${maxJobs}: ${job.title} at ${job.companyName}`);
                     } catch (error) {
-                        console.log(`   ✗ Error scraping job ${allJobs.length + 1}:`, (error as Error).message);
+                        this.log(`   ✗ Error scraping job ${allJobs.length + 1}:`, (error as Error).message);
                         continue;
                     }
                 }
 
                 // If we have enough jobs, stop
                 if (allJobs.length >= maxJobs) {
-                    console.log(`   ✓ Reached target of ${maxJobs} jobs!`);
+                    this.log(`   ✓ Reached target of ${maxJobs} jobs!`);
                     break;
                 }
 
@@ -838,22 +847,22 @@ export class LinkedInScraper {
                 }
 
                 if (!nextButton) {
-                    console.log(`   ⚠ No more pages available. Total jobs: ${allJobs.length}`);
+                    this.log(`   ⚠ No more pages available. Total jobs: ${allJobs.length}`);
                     break;
                 }
 
                 // Click the next button
-                console.log(`   ➡️  Clicking Next to load page ${currentPage + 1}...`);
+                this.log(`   ➡️  Clicking Next to load page ${currentPage + 1}...`);
                 await nextButton.click();
                 await this.page.waitForTimeout(3000); // Wait for next page to load
                 currentPage++;
             }
 
-            console.log(`\n✓ Successfully scraped ${allJobs.length} jobs!`);
+            this.log(`\n✓ Successfully scraped ${allJobs.length} jobs!`);
 
             // Wait for company details queue to finish processing (if running)
             if (this.companyQueue.size > 0) {
-                console.log(`\n⏳ Waiting for company details processing to complete...`);
+                this.log(`\n⏳ Waiting for company details processing to complete...`);
 
                 // Wait for queue processing to finish
                 while (this.isProcessingQueue) {
@@ -861,7 +870,7 @@ export class LinkedInScraper {
                 }
 
                 // Enrich jobs with company details from cache
-                console.log(`\n📝 Enriching jobs with company details...`);
+                this.log(`\n📝 Enriching jobs with company details...`);
                 for (const job of allJobs) {
                     if (job.companyLinkedinUrl && this.companyDetailsCache.has(job.companyLinkedinUrl)) {
                         const details = this.companyDetailsCache.get(job.companyLinkedinUrl)!;
@@ -872,18 +881,18 @@ export class LinkedInScraper {
                         job.industries = details.industries;
                     }
                 }
-                console.log(`✓ Jobs enriched with company details\n`);
+                this.log(`✓ Jobs enriched with company details\n`);
             }
 
             return allJobs;
         } catch (error) {
-            console.error('Error scraping job listings:', (error as Error).message);
+            this.log('Error scraping job listings:', (error as Error).message);
             return allJobs;
         }
     }
 
     async searchJobs(filters?: SearchFilters, maxJobs: number = 10): Promise<Job[]> {
-        console.log('\n=== Starting LinkedIn Job Search ===\n');
+        this.log('\n=== Starting LinkedIn Job Search ===\n');
 
         try {
             if (!this.loggedIn) {
@@ -894,24 +903,24 @@ export class LinkedInScraper {
             }
 
             const searchUrl = this.buildSearchUrl(filters);
-            console.log('🔍 Search URL:', searchUrl);
+            this.log('🔍 Search URL:', searchUrl);
 
             if (!this.page) {
                 throw new Error('Browser not initialized.');
             }
 
-            console.log('\nApplying filters...');
-            if (filters?.keywords) console.log(`   Keywords: ${filters.keywords}`);
-            if (filters?.location) console.log(`   Location: ${filters.location}`);
-            if (filters?.datePosted) console.log(`   Date Posted: ${filters.datePosted}`);
-            if (filters?.experienceLevel) console.log(`   Experience Level: ${filters.experienceLevel.join(', ')}`);
-            if (filters?.jobType) console.log(`   Job Type: ${filters.jobType.join(', ')}`);
-            if (filters?.remote) console.log(`   Remote: ${filters.remote.join(', ')}`);
+            this.log('\nApplying filters...');
+            if (filters?.keywords) this.log(`   Keywords: ${filters.keywords}`);
+            if (filters?.location) this.log(`   Location: ${filters.location}`);
+            if (filters?.datePosted) this.log(`   Date Posted: ${filters.datePosted}`);
+            if (filters?.experienceLevel) this.log(`   Experience Level: ${filters.experienceLevel.join(', ')}`);
+            if (filters?.jobType) this.log(`   Job Type: ${filters.jobType.join(', ')}`);
+            if (filters?.remote) this.log(`   Remote: ${filters.remote.join(', ')}`);
 
             await this.page.goto(searchUrl, { waitUntil: 'domcontentloaded' });
             await this.page.waitForTimeout(3000);
 
-            console.log('\n✓ Filters applied successfully!');
+            this.log('\n✓ Filters applied successfully!');
 
             // Initialize company details worker
             await this.initCompanyWorker();
@@ -920,7 +929,7 @@ export class LinkedInScraper {
 
             return jobs;
         } catch (error) {
-            console.error('Error during job search:', (error as Error).message);
+            this.log('Error during job search:', (error as Error).message);
             throw error;
         }
     }
@@ -934,7 +943,7 @@ export class LinkedInScraper {
         }
 
         if (this.browser) {
-            console.log('\nClosing browser...');
+            this.log('\nClosing browser...');
             await this.browser.close();
             this.browser = null;
             this.page = null;

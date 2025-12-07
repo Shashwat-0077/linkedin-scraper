@@ -25,6 +25,9 @@ async function main(): Promise<void> {
         gmailRedirectUri: process.env.GMAIL_REDIRECT_URI || 'http://localhost',
         gmailRefreshToken: process.env.GMAIL_REFRESH_TOKEN!,
         gmailAccessToken: process.env.GMAIL_ACCESS_TOKEN!,
+
+        sessionFile: './sessions/linkedin-session.json',
+        tokenFile: './sessions/gmail-token.json',
     });
 
     try {

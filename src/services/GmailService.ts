@@ -1,32 +1,40 @@
 import { google } from 'googleapis';
-import { config } from '../config.js';
 
 export interface GmailCredentials {
-    clientId?: string;
-    clientSecret?: string;
-    redirectUri?: string;
-    refreshToken?: string;
-    accessToken?: string;
+    clientId: string;
+    clientSecret: string;
+    redirectUri: string;
+    refreshToken: string;
+    accessToken: string;
 }
 
 export class GmailService {
     private oauth2Client: any;
 
-    constructor(credentials?: GmailCredentials) {
-        // Use provided credentials or fall back to config
-        const clientId = credentials?.clientId || config.GMAIL_CLIENT_ID;
-        const clientSecret = credentials?.clientSecret || config.GMAIL_CLIENT_SECRET;
-        const redirectUri = credentials?.redirectUri || config.GMAIL_REDIRECT_URI;
-        const refreshToken = credentials?.refreshToken || config.GMAIL_REFRESH_TOKEN;
-        const accessToken = credentials?.accessToken || config.GMAIL_ACCESS_TOKEN;
+    constructor(credentials: GmailCredentials) {
+        if (
+            !credentials.clientId ||
+            !credentials.clientSecret ||
+            !credentials.redirectUri ||
+            !credentials.refreshToken ||
+            !credentials.accessToken
+        ) {
+            throw new Error(
+                'All Gmail credentials are required: clientId, clientSecret, redirectUri, refreshToken, accessToken',
+            );
+        }
 
         // Initialize OAuth2 client with credentials
-        this.oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+        this.oauth2Client = new google.auth.OAuth2(
+            credentials.clientId,
+            credentials.clientSecret,
+            credentials.redirectUri,
+        );
 
         // Set credentials (access token and refresh token)
         this.oauth2Client.setCredentials({
-            access_token: accessToken,
-            refresh_token: refreshToken,
+            access_token: credentials.accessToken,
+            refresh_token: credentials.refreshToken,
         });
     }
 

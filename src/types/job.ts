@@ -1,7 +1,7 @@
 import { SupportedPlatform } from './scraper.js';
 
 export interface Job {
-    platform: SupportedPlatform;
+    platform?: SupportedPlatform;
     id?: string;
     title: string;
     link: string;

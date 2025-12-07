@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 // Gmail OAuth2 Token Generator
 const fs = require('fs');
 const path = require('path');

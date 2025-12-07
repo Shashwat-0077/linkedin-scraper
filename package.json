@@ -13,13 +13,17 @@
         ".env.example",
         "linkedin-scraper.config.example.cjs"
     ],
+    "bin": {
+        "linkedin-gmail-token": "scripts/generate-gmail-token.cjs",
+        "linkedin-install-browsers": "scripts/install-browsers.cjs"
+    },
     "scripts": {
         "build": "tsc",
         "prepare": "npm run build",
         "prepack": "npm run build",
         "example": "tsx examples/basic-usage.ts",
         "gmail:token": "node scripts/generate-gmail-token.cjs",
-        "install-browsers": "npx playwright install chromium"
+        "install-browsers": "node scripts/install-browsers.cjs"
     },
     "keywords": [
         "linkedin",

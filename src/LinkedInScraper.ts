@@ -1,6 +1,6 @@
 import { chromium, Browser, Page, BrowserContext } from 'playwright';
 import { config } from './config.js';
-import { Job, SearchFilters, LinkedInFilters } from './types.js';
+import { Job, SearchFilters, LinkedInFilters } from './types/index.js';
 import fs from 'fs';
 import path from 'path';
 

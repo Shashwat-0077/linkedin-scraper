@@ -4,5 +4,5 @@ export { GmailService, GmailCredentials } from './services/GmailService.js';
 export { config } from './config.js';
 
 // Export all types
-export type { Job, SearchFilters, LinkedInFilters } from './types.js';
-export type { UnifiedFilters } from './types/scraper.js';
+export type { Job, SearchFilters, UnifiedFilters } from './types/index.js';
+export { LinkedInFilters } from './types/index.js';
